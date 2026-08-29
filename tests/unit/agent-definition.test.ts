@@ -71,6 +71,15 @@ describe('ONCALL TrueForge manifest', () => {
     expect(policy).toEqual(expect.arrayContaining(gatedTools));
   });
 
+  it('requests only metrics exposed by the incident connector', () => {
+    expect(SPECIALIST_PROMPTS['metrics-analyzer']).toContain(
+      'db_round_trips_p99',
+    );
+    expect(SPECIALIST_PROMPTS['metrics-analyzer']).not.toContain(
+      'db_pool_waiters',
+    );
+  });
+
   it('requires sibling fan-out, fan-in, correlation, separate selection and approval', () => {
     expect(AGENT_INSTRUCTIONS).toContain(
       'call create_sub_agent exactly four times',

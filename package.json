@@ -28,7 +28,8 @@
     "verify:publication": "node scripts/verify-publication-index.mjs",
     "verify:remediation": "node scripts/verify-remediation-contract.mjs",
     "verify:surfaces": "node scripts/verify-surfaces.mjs",
-    "verify": "pnpm verify:env && pnpm verify:client-env && pnpm verify:secrets && pnpm verify:repository && pnpm verify:publication && pnpm verify:rollback && pnpm verify:remediation && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm verify:surfaces",
+    "verify": "pnpm verify:env && pnpm verify:client-env && pnpm verify:secrets && pnpm verify:repository && pnpm verify:rollback && pnpm verify:remediation && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm verify:surfaces",
+    "verify:release": "pnpm verify && pnpm verify:publication",
     "verify:live": "node scripts/verify-live-env.mjs && node scripts/verify-live-skills.mjs && pnpm test:integration && pnpm test:e2e",
     "evidence:capture": "node scripts/capture-evidence.mjs"
   },

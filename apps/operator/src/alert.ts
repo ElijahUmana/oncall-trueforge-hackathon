@@ -42,9 +42,22 @@ export async function triggerAlert({
     stream: { reconnectionEnabled: true, maxReconnectionAttempts: 10 },
   });
   const session = await client.sessions.create({ agent: { name: agentName } });
-  await client.sessions.createTurn(session.data.id, {
-    input: [{ type: 'user.message', content: buildAlertMessage(incidentId) }],
-    previousTurnId: 'auto',
-  });
+  try {
+    await client.sessions.createTurn(session.data.id, {
+      input: [{ type: 'user.message', content: buildAlertMessage(incidentId) }],
+      previousTurnId: 'auto',
+    });
+  } catch (turnError) {
+    try {
+      await client.sessions.delete(session.data.id);
+    } catch (cleanupError) {
+      throw new AggregateError(
+        [turnError, cleanupError],
+        `Failed to start incident ${incidentId} and remove empty session ${session.data.id}`,
+        { cause: cleanupError },
+      );
+    }
+    throw turnError;
+  }
   return session.data.id;
 }

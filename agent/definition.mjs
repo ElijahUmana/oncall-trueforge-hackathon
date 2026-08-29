@@ -31,7 +31,7 @@ export const SPECIALIST_PROMPTS = {
   ),
   'metrics-analyzer': specialistPrompt(
     'metrics-analyzer',
-    'For the incident and service supplied by the parent, call metrics_query for p50_ms, p95_ms, p99_ms, error_rate_pct, and db_pool_waiters over the investigation window. Establish the pre-incident baseline, first anomaly timestamp, and peak observed values. Do not investigate logs, deploys, or code.',
+    'For the incident and service supplied by the parent, call metrics_query for p50_ms, p95_ms, p99_ms, error_rate_pct, and db_round_trips_p99 over the investigation window. Establish the pre-incident baseline, first anomaly timestamp, and peak observed values. Do not investigate logs, deploys, or code.',
   ),
   'deploy-investigator': specialistPrompt(
     'deploy-investigator',
