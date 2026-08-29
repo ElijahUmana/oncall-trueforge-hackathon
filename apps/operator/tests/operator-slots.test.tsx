@@ -5,7 +5,9 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@truefoundry/trueforge-ui', () => ({
-  MessageErrorBanner: ({ message }: { message: string }) => <p>{message}</p>,
+  MessageErrorBanner: ({ message }: { message: string }) => (
+    <p role="alert">{message}</p>
+  ),
   OpenUiFenceBlock: ({ content }: { content: string }) => <div>{content}</div>,
   SandboxToolCallCard: ({ name }: { name: string }) => <div>{name}</div>,
   SubAgentCard: ({ agentName }: { agentName: string }) => (
@@ -118,8 +120,26 @@ describe('operator slots', () => {
     expect(sandbox).toHaveAttribute('data-execution-state', 'error');
     expect(screen.getByText('Execution failed')).toBeVisible();
 
+    rerender(
+      <OperatorSandboxCard
+        name="shell"
+        intent="execute"
+        status="success"
+        expanded
+        onToggle={vi.fn()}
+        hasContent
+        viewMode="terminal"
+        onViewModeChange={vi.fn()}
+        resultJson={'{"status":"healthy","error":null}'}
+      />,
+    );
+    expect(
+      screen.getByRole('region', { name: 'Sandbox execution: shell' }),
+    ).toHaveAttribute('data-execution-state', 'success');
+    expect(screen.getByText('Isolated execution')).toBeVisible();
+
     rerender(<OperatorErrorBanner message="Tool connection failed" />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Workflow stopped');
+    expect(screen.getByText('Workflow stopped')).toBeVisible();
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Tool connection failed',
     );

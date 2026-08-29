@@ -4,6 +4,7 @@ const requiredPublicVariables = ['CHECKOUT_MCP_URL', 'TRUEFORGE_BASE_URL'];
 const sensitiveVariables = [
   'OPENAI_API_KEY',
   'DAYTONA_API_KEY',
+  'DAYTONA_SNAPSHOT',
   'GITHUB_TOKEN',
   'GITHUB_DEMO_TOKEN',
   'SLACK_WEBHOOK_URL',

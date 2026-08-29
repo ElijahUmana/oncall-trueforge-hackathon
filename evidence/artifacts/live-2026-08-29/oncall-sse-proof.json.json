@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:53:43.994Z",
+  "surface": "sse-streaming",
+  "check": "live-sse-lifecycle",
+  "source": "../../../../../tmp/oncall-sse-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-sse-proof.json",
+  "sha256": "05919ff53a50065d3b641ebd083983bc604d567a922405a3b459815fdb8cb196",
+  "bytes": 340
+}

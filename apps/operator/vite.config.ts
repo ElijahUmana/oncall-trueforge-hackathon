@@ -1,7 +1,7 @@
+import react from '@vitejs/plugin-react';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
 
 const require = createRequire(import.meta.url);
@@ -36,6 +36,10 @@ const monacoWorkers: MonacoWorker[] = [
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const trueForgeBaseUrl = env.TRUEFORGE_BASE_URL ?? 'http://127.0.0.1:8790';
+  const apiProxy = {
+    target: trueForgeBaseUrl,
+    changeOrigin: true,
+  };
 
   return {
     plugins: [
@@ -55,12 +59,10 @@ export default defineConfig(({ mode }) => {
       ],
     },
     server: {
-      proxy: {
-        '/api': {
-          target: trueForgeBaseUrl,
-          changeOrigin: true,
-        },
-      },
+      proxy: { '/api': apiProxy },
+    },
+    preview: {
+      proxy: { '/api': apiProxy },
     },
   };
 });

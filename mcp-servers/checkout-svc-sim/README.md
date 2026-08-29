@@ -41,7 +41,7 @@ State-changing tools:
 
 - `pagerduty_acknowledge`: `triggered → acknowledged`
 - `pagerduty_resolve`: `acknowledged → resolved`
-- `rollback_execute`: after TrueForge approval, creates an isolated Daytona sandbox, verifies the bad deploy, runs pre-remediation evidence, creates and tests the revert, verifies healthy post-remediation evidence, pushes the revert to `main`, verifies the remote SHA, and deletes the sandbox
+- `rollback_execute`: after TrueForge approval, creates an isolated Daytona sandbox from the configured TrueForge snapshot, verifies the bad deploy, runs pre-remediation evidence, creates and tests the revert, verifies healthy post-remediation evidence, pushes the revert to `main`, verifies the remote SHA, and force-stops the ephemeral sandbox
 - `slack_post_message`: performs a real Slack webhook call
 - `jira_create_issue`: performs a real Jira Cloud REST call
 
@@ -66,10 +66,11 @@ Rollback requires credentials scoped to creating a Daytona sandbox and pushing o
 
 ```bash
 DAYTONA_API_KEY=...
+DAYTONA_SNAPSHOT=trueforge-build-...
 GITHUB_DEMO_TOKEN=...
 ```
 
-The GitHub token is supplied only to the sandbox command environment and used through `GIT_ASKPASS`; it is never embedded in command text or returned. Missing credentials, clone/head mismatch, incident reproduction failure, test failure, push failure, remote-SHA mismatch, or recovery verification failure returns an MCP tool error and does not append a rollback-success audit record. After a verified push, sandbox cleanup failure is returned as `sandbox_deleted: false` with `cleanup_error` so callers do not retry an already completed mutation.
+The GitHub token is supplied only to the Daytona `codeRun` environment and passed to `/bin/bash` through `GIT_ASKPASS`; it is never embedded in Python or shell source or returned. `DAYTONA_SNAPSHOT` must name the verified TrueForge-built snapshot because Daytona's generic `executeCommand` images have incompatible toolbox shell paths in this account. Missing credentials/configuration, alternate repository/branch, clone/head mismatch, incident reproduction failure, test failure, push failure, remote-SHA mismatch, or recovery verification failure returns an MCP tool error and does not append a rollback-success audit record. After a verified push, sandbox stop failure is returned as `sandbox_stopped: false` with `cleanup_error` so callers do not retry an already completed mutation.
 
 Jira Cloud requires:
 

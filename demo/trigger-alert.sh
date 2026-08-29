@@ -15,7 +15,9 @@ if [[ -n "${TRUEFORGE_TOKEN:-}" ]]; then
   headers+=(-H "Authorization: Bearer ${TRUEFORGE_TOKEN}")
 fi
 
-session_payload=$(printf '{"agent":{"name":"%s"}}' "$agent_name")
+session_payload=$(node -e '
+process.stdout.write(JSON.stringify({ agent: { name: process.argv[1] } }));
+' "$agent_name")
 session_response=$(curl --fail-with-body --silent --show-error \
   --connect-timeout 5 --max-time 30 \
   "${headers[@]}" \
@@ -32,6 +34,14 @@ process.stdin.on("end", () => {
 });
 ' <<<"$session_response")
 
+cleanup_session() {
+  curl --silent --show-error \
+    --connect-timeout 5 --max-time 30 \
+    "${headers[@]}" \
+    -X DELETE "${trueforge_base_url}/api/v1/sessions/${session_id}" >/dev/null
+}
+trap cleanup_session ERR
+
 message=$(printf '%s' "A production alert fired for incident ${incident_id}. Start the on-call incident response workflow now. Retrieve current incident data from the connected incident tools before making any claim. Acknowledge the incident, investigate with the four runbook workers in parallel, and present evidence-linked remediation choices. Do not execute a write or destructive action without the required human approval.")
 turn_payload=$(node -e '
 const message = process.argv[1];
@@ -47,6 +57,7 @@ curl --fail-with-body --silent --show-error \
   "${headers[@]}" \
   -X POST "${trueforge_base_url}/api/v1/sessions/${session_id}/turns" \
   --data "$turn_payload" >/dev/null
+trap - ERR
 
 printf '%s\n' "${session_id}"
 printf '%s\n' "Operator URL: ${ONCALL_OPERATOR_URL:-http://127.0.0.1:4173}/sessions/${session_id}"

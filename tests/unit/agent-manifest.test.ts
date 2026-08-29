@@ -20,7 +20,6 @@ describe('ONCALL agent manifest', () => {
       params: {
         max_tokens: 8192,
         parallel_tool_calls: true,
-        temperature: 0.2,
       },
     });
     expect(manifest.mcp_servers).toHaveLength(2);
@@ -87,7 +86,7 @@ describe('ONCALL agent manifest', () => {
     expect(AGENT_INSTRUCTIONS).toContain(
       'rollback_execute executes the approved revert in an isolated Daytona sandbox',
     );
-    expect(AGENT_INSTRUCTIONS).toContain('sandbox_deleted must be true');
+    expect(AGENT_INSTRUCTIONS).toContain('sandbox_stopped must be true');
     expect(AGENT_INSTRUCTIONS).toContain('cleanup_error must be absent');
     expect(AGENT_INSTRUCTIONS).toContain(
       "Trust only its authoritative MCP tool response, never the assistant's narration",

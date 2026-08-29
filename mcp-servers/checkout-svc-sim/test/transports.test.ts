@@ -226,6 +226,9 @@ describe('MCP transports', () => {
       arguments: {
         incident_id: 'INC-4821',
         deploy_id: '9921',
+        repository_url:
+          'https://github.com/ElijahUmana/oncall-demo-svc.git',
+        branch: 'main',
         requested_by: 'integration-test',
         reason: 'Deploy immediately preceded per-item database round trips',
       },

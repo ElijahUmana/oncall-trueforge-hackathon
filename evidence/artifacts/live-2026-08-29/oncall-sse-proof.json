@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17hv1bejtbsyf4tdq34g2j5",
+  "event_types": [
+    "turn.created",
+    "mcp.initialize",
+    "tool.response",
+    "model.message.delta",
+    "turn.done"
+  ],
+  "stream_opened_with": "turn.created",
+  "stream_closed_with": "turn.done",
+  "approval_denial_streamed": true,
+  "final_status": "done"
+}

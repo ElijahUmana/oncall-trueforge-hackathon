@@ -56,7 +56,7 @@ Remediation selection and execution approval are distinct checkpoints.
 
 1. Render the correlated RCA and evidence.
 2. Ask the operator to select rollback, restart, manual patch, or escalation without action.
-3. Restate the exact target, intended side effect, verification, and recovery boundary.
+3. Restate the exact target, intended side effect, verification, and recovery boundary. For rollback, the approval payload must explicitly contain repository `https://github.com/ElijahUmana/oncall-demo-svc.git` and branch `main`.
 4. Call the approval-gated execution tool.
 5. Stop immediately if approval is denied.
 6. Execute only an implemented path. Do not simulate unavailable restart or patch operations.
@@ -72,7 +72,7 @@ Accept rollback success only when the typed result proves every invariant:
 5. `tests_passed` is `true`.
 6. `post_evidence` is exactly 25 requests, 0 errors, 0 error rate, healthy health, and p99 below 1000 ms.
 7. `revert_sha` and `remote_sha` are full 40-character Git SHAs and are equal.
-8. `sandbox_deleted` is `true` and `cleanup_error` is absent.
+8. `sandbox_stopped` is `true` and `cleanup_error` is absent.
 9. An audit event records the executed rollback.
 
 Trust only the authoritative MCP tool response, never assistant narration. If credentials are unavailable, execution fails, cleanup fails, or any invariant differs, keep the incident acknowledged, surface the exact tool error, and do not claim rollback, push, or recovery. For any separate non-remediation native sandbox exec, claim an effect only after its tool response has `success === true` and `response.exitCode === 0`.

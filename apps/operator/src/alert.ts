@@ -35,7 +35,7 @@ export async function triggerAlert({
   agentName,
   incidentId,
 }: TriggerOptions): Promise<string> {
-  assertIncidentId(incidentId);
+  const message = buildAlertMessage(incidentId);
   const client = new TrueForge({
     baseUrl,
     timeoutInSeconds: 60,
@@ -44,7 +44,7 @@ export async function triggerAlert({
   const session = await client.sessions.create({ agent: { name: agentName } });
   try {
     await client.sessions.createTurn(session.data.id, {
-      input: [{ type: 'user.message', content: buildAlertMessage(incidentId) }],
+      input: [{ type: 'user.message', content: message }],
       previousTurnId: 'auto',
     });
   } catch (turnError) {

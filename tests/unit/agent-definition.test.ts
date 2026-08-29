@@ -96,7 +96,7 @@ describe('ONCALL TrueForge manifest', () => {
     expect(AGENT_INSTRUCTIONS).toContain(
       'rollback_execute executes the approved revert in an isolated Daytona sandbox',
     );
-    expect(AGENT_INSTRUCTIONS).toContain('sandbox_deleted must be true');
+    expect(AGENT_INSTRUCTIONS).toContain('sandbox_stopped must be true');
     expect(AGENT_INSTRUCTIONS).toContain('cleanup_error must be absent');
     expect(AGENT_INSTRUCTIONS).toContain(
       "Trust only its authoritative MCP tool response, never the assistant's narration",

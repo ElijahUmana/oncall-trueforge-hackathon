@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17mz2eaz8g04hm53yh55dy2",
+  "skill_name": "oncall-runbook",
+  "skill_ref": "ffbd2339b584227093356ed7a4c5f66d928c1abe",
+  "sandbox_id": "v1:daytona:default.a528bc2b-f769-4bac-84d0-af1c5016ae06",
+  "command_exit_code": 0,
+  "skill_marker_observed": true,
+  "turn_status": "done"
+}

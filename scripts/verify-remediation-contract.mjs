@@ -8,6 +8,13 @@ const serverSource = await readFile(
   new URL('../mcp-servers/checkout-svc-sim/src/server.ts', import.meta.url),
   'utf8',
 );
+const executorSource = await readFile(
+  new URL(
+    '../mcp-servers/checkout-svc-sim/src/rollback-executor.ts',
+    import.meta.url,
+  ),
+  'utf8',
+);
 
 const mcpExecutesRollback = serverSource.includes('await executor.execute({');
 const agentClaimsIntentOnly = agentSource.includes(
@@ -16,6 +23,35 @@ const agentClaimsIntentOnly = agentSource.includes(
 const agentExecutesSecondRollback = agentSource.includes(
   'Only after rollback_execute succeeds may you use the TrueForge sandbox exec tool.',
 );
+const expectedRepositoryUrl =
+  'https://github.com/ElijahUmana/oncall-demo-svc.git';
+const approvalBindsRepository =
+  serverSource.includes('repository_url: z.literal(ROLLBACK_REPOSITORY_URL)') &&
+  executorSource.includes(
+    `export const ROLLBACK_REPOSITORY_URL =\n  '${expectedRepositoryUrl}' as const`,
+  ) &&
+  serverSource.includes('repositoryUrl: repository_url');
+const approvalBindsBranch =
+  serverSource.includes('branch: z.literal(ROLLBACK_BRANCH)') &&
+  executorSource.includes("export const ROLLBACK_BRANCH = 'main' as const") &&
+  serverSource.includes('branch,');
+const agentSuppliesRepository =
+  agentSource.includes('repository_url') &&
+  agentSource.includes(expectedRepositoryUrl);
+const agentSuppliesBranch =
+  agentSource.includes('branch') && agentSource.includes('main');
+
+if (
+  mcpExecutesRollback &&
+  (!approvalBindsRepository ||
+    !approvalBindsBranch ||
+    !agentSuppliesRepository ||
+    !agentSuppliesBranch)
+) {
+  throw new Error(
+    'Atomic rollback approval mismatch: rollback_execute must require literal repository_url and branch inputs, and the agent must supply the exact approved target before Daytona execution.',
+  );
+}
 
 if (
   mcpExecutesRollback &&

@@ -6,9 +6,9 @@
       "name": "MCP tools and custom connector",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/mcp-servers.mdx",
       "status": "verified",
-      "checks": ["live-integration"],
+      "checks": ["live-integration-current"],
       "artifacts": [
-        "evidence/artifacts/live-2026-08-29/oncall-live-integration.txt"
+        "evidence/artifacts/live-2026-08-29/oncall-mcp-live-proof.json"
       ]
     },
     {
@@ -35,9 +35,11 @@
       "id": "skills",
       "name": "Git-backed skills",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/skills.mdx",
-      "status": "unverified",
-      "checks": [],
-      "artifacts": []
+      "status": "verified",
+      "checks": ["immutable-daytona-mount"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-skill-mount-proof.json"
+      ]
     },
     {
       "id": "approval-gates",
@@ -93,9 +95,11 @@
       "id": "persistent-sessions",
       "name": "Persistent sessions",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/api/overview.mdx",
-      "status": "unverified",
-      "checks": [],
-      "artifacts": []
+      "status": "verified",
+      "checks": ["process-restart-session-retrieval"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-restart-persistence-proof.json"
+      ]
     },
     {
       "id": "saved-agent",
@@ -112,10 +116,8 @@
       "name": "SSE turn streaming",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/api/quickstart.mdx",
       "status": "verified",
-      "checks": ["live-denial"],
-      "artifacts": [
-        "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json"
-      ]
+      "checks": ["live-sse-lifecycle"],
+      "artifacts": ["evidence/artifacts/live-2026-08-29/oncall-sse-proof.json"]
     },
     {
       "id": "chat-ui",
@@ -142,7 +144,7 @@
       "status": "unsupported",
       "checks": [],
       "artifacts": [],
-      "reason": "No lifecycle-hook implementation or documentation was found in the official main-branch tree inspected on 2026-08-29. Re-evaluate against a specific released revision before claiming support."
+      "reason": "Stable TrueForge does not expose lifecycle hooks. Official open PR #380 was verified separately at fb50dbeaa92d6c0b22d5d15ab139e902a226eae0, but it is unmerged, has no before/after-model events, and its pre_tool_use timing differs around approval pauses; it must be labeled as an upstream experiment, not stable support."
     },
     {
       "id": "agent-json-import",

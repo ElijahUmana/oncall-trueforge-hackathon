@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:53:29.423Z",
+  "surface": "mcp-connectors",
+  "check": "live-integration-current",
+  "source": "../../../../../tmp/oncall-mcp-live-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-mcp-live-proof.json",
+  "sha256": "67f73fa291f8d76f3b9a18033a8ef250cf5962083725ee8a24a787aef3dbc922",
+  "bytes": 218
+}

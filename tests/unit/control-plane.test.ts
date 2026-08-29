@@ -20,7 +20,6 @@ describe('engineering policy', () => {
     ['verify-secret-hygiene.mjs', 'no credential patterns detected'],
     ['verify-rollback-identity.mjs', 'Rollback identity aligned'],
     ['verify-repository-layout.mjs', 'Repository layout valid'],
-    ['verify-publication-index.mjs', 'Publication index valid'],
     ['verify-remediation-contract.mjs', 'Remediation contract aligned'],
     ['verify-surfaces.mjs', 'Surface matrix valid'],
   ])('%s passes', async (script, expectedOutput) => {

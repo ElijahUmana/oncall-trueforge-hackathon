@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:57:09.144Z",
+  "surface": "skills",
+  "check": "immutable-daytona-mount",
+  "source": "../../../../../tmp/oncall-skill-mount-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-skill-mount-proof.json",
+  "sha256": "0752823d0e5a6578464106b910eb3642b4c65357742ae5607c0f1d4093145b73",
+  "bytes": 323
+}

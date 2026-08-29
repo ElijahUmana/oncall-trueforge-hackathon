@@ -22,7 +22,12 @@ const required = new Set([
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
   'skills/oncall-runbook/SKILL.md',
-  ...matrix.surfaces.flatMap(surface => surface.artifacts ?? []),
+  ...matrix.surfaces.flatMap(surface =>
+    (surface.artifacts ?? []).flatMap(artifact => [
+      artifact,
+      `${artifact}.json`,
+    ]),
+  ),
 ]);
 
 const { stdout } = await execFileAsync('git', ['ls-files', '--stage'], {

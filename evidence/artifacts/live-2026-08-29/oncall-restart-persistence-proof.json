@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17hmzn2zz63d3bv81enb531",
+  "created_at": "2026-08-29T19:58:51.555Z",
+  "updated_at": "2026-08-29T19:59:12.487Z",
+  "verified_after_process_restart": true,
+  "events_after_restart": 10,
+  "events_still_retrievable": 10,
+  "agent_name": "oncall-runtime-probe",
+  "event_types": [
+    "mcp.initialize",
+    "model.message",
+    "tool.approval_required",
+    "tool.response",
+    "turn.created",
+    "turn.done"
+  ]
+}

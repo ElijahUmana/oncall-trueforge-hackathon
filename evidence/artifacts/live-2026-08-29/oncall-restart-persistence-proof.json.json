@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:50:08.509Z",
+  "surface": "persistent-sessions",
+  "check": "process-restart-session-retrieval",
+  "source": "../../../../../tmp/oncall-restart-persistence-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-restart-persistence-proof.json",
+  "sha256": "fa0aab23ab2e84695ac0106a05b95b6b44807462ee6cbd86d26f94dc15271d95",
+  "bytes": 459
+}

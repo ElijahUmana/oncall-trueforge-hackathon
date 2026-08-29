@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { access, readFile, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -70,27 +71,77 @@ for (const surface of matrix.surfaces) {
       }
       try {
         await access(artifactPath);
-        if ((await stat(artifactPath)).size === 0)
+        const artifactContents = await readFile(artifactPath);
+        if (artifactContents.length === 0)
           errors.push(`${surface.id}: empty artifact ${artifact}`);
+        const metadataPath = `${artifactPath}.json`;
+        const metadataRelativePath = `${artifact}.json`;
         try {
-          await execFileAsync(
-            'git',
-            ['check-ignore', '--quiet', '--', artifact],
-            {
-              cwd: root,
-            },
-          );
-          errors.push(
-            `${surface.id}: verified artifact is ignored by Git: ${artifact}`,
-          );
+          const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
+          const actualSha256 = createHash('sha256')
+            .update(artifactContents)
+            .digest('hex');
+          if (metadata.schemaVersion !== 1)
+            errors.push(
+              `${surface.id}: invalid metadata schema ${metadataRelativePath}`,
+            );
+          if (metadata.artifact !== artifact)
+            errors.push(
+              `${surface.id}: metadata artifact mismatch ${metadataRelativePath}`,
+            );
+          if (metadata.surface !== surface.id)
+            errors.push(
+              `${surface.id}: metadata surface mismatch ${metadataRelativePath}`,
+            );
+          if (!surface.checks.includes(metadata.check))
+            errors.push(
+              `${surface.id}: metadata check is not declared ${metadataRelativePath}`,
+            );
+          if (metadata.bytes !== artifactContents.length)
+            errors.push(
+              `${surface.id}: metadata byte count mismatch ${metadataRelativePath}`,
+            );
+          if (metadata.sha256 !== actualSha256)
+            errors.push(
+              `${surface.id}: metadata SHA-256 mismatch ${metadataRelativePath}`,
+            );
         } catch (error) {
-          if (
-            error === null ||
-            typeof error !== 'object' ||
-            !('code' in error) ||
-            error.code !== 1
-          ) {
-            throw error;
+          if (error instanceof SyntaxError)
+            errors.push(
+              `${surface.id}: invalid metadata JSON ${metadataRelativePath}`,
+            );
+          else if (
+            error !== null &&
+            typeof error === 'object' &&
+            'code' in error &&
+            error.code === 'ENOENT'
+          )
+            errors.push(
+              `${surface.id}: missing metadata ${metadataRelativePath}`,
+            );
+          else throw error;
+        }
+        for (const trackedPath of [artifact, metadataRelativePath]) {
+          try {
+            await execFileAsync(
+              'git',
+              ['check-ignore', '--quiet', '--', trackedPath],
+              {
+                cwd: root,
+              },
+            );
+            errors.push(
+              `${surface.id}: verified evidence is ignored by Git: ${trackedPath}`,
+            );
+          } catch (error) {
+            if (
+              error === null ||
+              typeof error !== 'object' ||
+              !('code' in error) ||
+              error.code !== 1
+            ) {
+              throw error;
+            }
           }
         }
       } catch {

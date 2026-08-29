@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import {
+  ROLLBACK_BRANCH,
+  ROLLBACK_REPOSITORY_URL,
   rollbackExecutor,
   type RollbackExecutor,
 } from './rollback-executor.js';
@@ -388,6 +390,8 @@ export function buildServer(
       inputSchema: z.object({
         incident_id: incidentId,
         deploy_id: z.string().regex(/^[0-9]+$/),
+        repository_url: z.literal(ROLLBACK_REPOSITORY_URL),
+        branch: z.literal(ROLLBACK_BRANCH),
         requested_by: actor,
         reason: z.string().trim().min(10).max(2000),
       }),
@@ -402,7 +406,7 @@ export function buildServer(
         post_evidence: rollbackEvidenceSchema,
         remote_sha: z.string().regex(/^[0-9a-f]{40}$/),
         tests_passed: z.literal(true),
-        sandbox_deleted: z.boolean(),
+        sandbox_stopped: z.boolean(),
         cleanup_error: z.string().optional(),
         audit_event: auditEventSchema,
       }),
@@ -413,7 +417,14 @@ export function buildServer(
         openWorldHint: true,
       },
     },
-    async ({ incident_id, deploy_id, requested_by, reason }) => {
+    async ({
+      incident_id,
+      deploy_id,
+      repository_url,
+      branch,
+      requested_by,
+      reason,
+    }) => {
       const incident = store.getIncident(incident_id);
       if (incident.status !== 'acknowledged') {
         throw new Error(
@@ -424,14 +435,17 @@ export function buildServer(
       const execution = await executor.execute({
         deployId: deploy.id,
         deployCommit: deploy.commit,
+        repositoryUrl: repository_url,
+        branch,
       });
       const auditEvent = store.recordExternalAction(
         'remediation.rollback_executed',
         requested_by,
         {
           deploy_id,
-          reason,
           repository_url: execution.repository_url,
+          branch,
+          reason,
           sandbox_id: execution.sandbox_id,
           revert_sha: execution.revert_sha,
           remote_sha: execution.remote_sha,

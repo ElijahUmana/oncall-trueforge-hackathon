@@ -84,7 +84,7 @@ describe.skipIf(!live)('live ONCALL saved agent', () => {
       'rollback_execute executes the approved revert in an isolated Daytona sandbox',
     );
     expect(agent.manifest.instructions).toContain(
-      'sandbox_deleted must be true',
+      'sandbox_stopped must be true',
     );
     expect(agent.manifest.instructions).toContain(
       'success === true and response.exitCode === 0',

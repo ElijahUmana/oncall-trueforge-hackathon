@@ -87,10 +87,26 @@ export function OperatorToolCallCard(props: ToolCallCardProps) {
   );
 }
 
+function hasJsonError(resultJson: string | undefined): boolean {
+  if (!resultJson) return false;
+  try {
+    const parsed = JSON.parse(resultJson) as unknown;
+    if (typeof parsed !== 'object' || parsed === null || !('error' in parsed)) {
+      return false;
+    }
+    const error = parsed.error;
+    return error !== null && error !== false && error !== '';
+  } catch {
+    return false;
+  }
+}
+
 function hasSandboxError(props: SandboxToolCallCardProps): boolean {
   if (props.exitCode != null && props.exitCode !== 0) return true;
-  const output = `${props.resultText ?? ''}\n${props.resultJson ?? ''}`;
-  return /Sandbox initialization failed|"error"\s*:/.test(output);
+  return (
+    props.resultText?.includes('Sandbox initialization failed') === true ||
+    hasJsonError(props.resultJson)
+  );
 }
 
 export function OperatorSandboxCard(props: SandboxToolCallCardProps) {
@@ -123,7 +139,7 @@ export function OperatorOpenUiBlock(props: OpenUiFenceBlockProps) {
 
 export function OperatorErrorBanner(props: MessageErrorBannerProps) {
   return (
-    <div role="alert" className="operator-error">
+    <div className="operator-error">
       <strong>Workflow stopped</strong>
       <MessageErrorBanner {...props} />
     </div>

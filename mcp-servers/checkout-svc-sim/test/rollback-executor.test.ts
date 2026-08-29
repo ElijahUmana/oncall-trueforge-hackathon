@@ -11,10 +11,18 @@ import { buildServer } from '../src/server.js';
 
 const deployCommit = 'b9c9167e17ed9e5a1159edcadedf1e5349550dbc';
 const revertSha = '28e1ff271805050952879b679067243ac2af2629';
+const repositoryUrl =
+  'https://github.com/ElijahUmana/oncall-demo-svc.git' as const;
+const branch = 'main' as const;
+const rollbackRequest = {
+  deployId: '9921',
+  deployCommit,
+  repositoryUrl,
+  branch,
+};
 
 interface FakeDaytona {
   create: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
 }
 
 function verifiedOutput(overrides: Record<string, unknown> = {}): string {
@@ -42,15 +50,16 @@ function verifiedOutput(overrides: Record<string, unknown> = {}): string {
 
 function fakeDaytona(response = { exitCode: 0, result: verifiedOutput() }): {
   daytona: FakeDaytona;
-  executeCommand: ReturnType<typeof vi.fn>;
+  codeRun: ReturnType<typeof vi.fn>;
+  stop: ReturnType<typeof vi.fn>;
 } {
-  const executeCommand = vi.fn().mockResolvedValue(response);
-  const sandbox = { id: 'sandbox-123', process: { executeCommand } };
+  const codeRun = vi.fn().mockResolvedValue(response);
+  const stop = vi.fn().mockResolvedValue(undefined);
+  const sandbox = { id: 'sandbox-123', process: { codeRun }, stop };
   const daytona: FakeDaytona = {
     create: vi.fn().mockResolvedValue(sandbox),
-    delete: vi.fn().mockResolvedValue(undefined),
   };
-  return { daytona, executeCommand };
+  return { daytona, codeRun, stop };
 }
 
 async function connectedClient(
@@ -81,19 +90,36 @@ describe('DaytonaRollbackExecutor', () => {
     const factory = vi.fn();
     const executor = new DaytonaRollbackExecutor(factory);
 
-    await expect(
-      executor.execute({ deployId: '9921', deployCommit }),
-    ).rejects.toThrow('DAYTONA_API_KEY is not configured');
+    await expect(executor.execute(rollbackRequest)).rejects.toThrow(
+      'DAYTONA_API_KEY is not configured',
+    );
     expect(factory).not.toHaveBeenCalled();
   });
 
-  it('executes and verifies the complete rollback transaction before deleting the sandbox', async () => {
+  it('rejects a rollback target outside the approved repository and branch', async () => {
     vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
     vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
-    const { daytona, executeCommand } = fakeDaytona();
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
+    const factory = vi.fn();
+    const executor = new DaytonaRollbackExecutor(factory);
+
+    await expect(
+      executor.execute({
+        ...rollbackRequest,
+        repositoryUrl: 'https://github.com/attacker/other.git' as typeof repositoryUrl,
+      }),
+    ).rejects.toThrow('does not match the approved repository and branch');
+    expect(factory).not.toHaveBeenCalled();
+  });
+
+  it('executes and verifies the complete rollback transaction before stopping the sandbox', async () => {
+    vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
+    vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
+    const { daytona, codeRun, stop } = fakeDaytona();
     const executor = new DaytonaRollbackExecutor(() => daytona);
 
-    const result = await executor.execute({ deployId: '9921', deployCommit });
+    const result = await executor.execute(rollbackRequest);
 
     expect(result).toEqual({
       repository_url: 'https://github.com/ElijahUmana/oncall-demo-svc.git',
@@ -116,91 +142,94 @@ describe('DaytonaRollbackExecutor', () => {
       },
       remote_sha: revertSha,
       tests_passed: true,
-      sandbox_deleted: true,
+      sandbox_stopped: true,
     });
     expect(daytona.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        language: 'python',
+        snapshot: 'trueforge-build-test',
         ephemeral: true,
         labels: { purpose: 'oncall-approved-rollback', deploy: '9921' },
       }),
       { timeout: 120 },
     );
-    const [script, cwd, environment, timeout] = executeCommand.mock
-      .calls[0] as [string, string, Record<string, string>, number];
-    expect(cwd).toBe('/workspace');
+    const [code, params, timeout] = codeRun.mock.calls[0] as [
+      string,
+      { env: Record<string, string> },
+      number,
+    ];
     expect(timeout).toBe(300);
-    expect(environment).toEqual(
+    expect(params.env).toEqual(
       expect.objectContaining({
         DEPLOY_COMMIT: deployCommit,
         GITHUB_DEMO_TOKEN: 'github-test-token',
+        GITHUB_REPOSITORY: repositoryUrl,
       }),
     );
-    expect(script).toContain('git clone --branch main --single-branch');
-    expect(script).toContain(
+    expect(code).toContain('mkdir -p /workspace');
+    expect(code).toContain('cwd="/"');
+    expect(code).toContain('["/bin/bash", "-lc", script]');
+    expect(code).toContain('git clone --branch main --single-branch');
+    expect(code).toContain(
       'EXPECTED_CHECKOUT_STATUS=503 ./verify-incident.sh',
     );
-    expect(script).toContain('git reset --hard HEAD');
-    expect(script).toContain('git revert --no-edit "$DEPLOY_COMMIT"');
-    expect(script).toContain('./run-tests.sh');
-    expect(script).toContain(
+    expect(code).toContain('git reset --hard HEAD');
+    expect(code).toContain('git revert --no-edit');
+    expect(code).toContain('./run-tests.sh');
+    expect(code).toContain(
       'EXPECTED_CHECKOUT_STATUS=201 ./verify-incident.sh',
     );
-    expect(script).toContain('git push origin "HEAD:main"');
-    expect(script).toContain('git ls-remote origin "refs/heads/main"');
-    expect(script).not.toContain('github-test-token');
-    expect(daytona.delete).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'sandbox-123' }),
-      120,
-      true,
-    );
+    expect(code).toContain('git push origin');
+    expect(code).toContain('git ls-remote origin');
+    expect(code).not.toContain('github-test-token');
+    expect(stop).toHaveBeenCalledWith(120, true);
   });
 
-  it('returns verified success with an explicit cleanup warning after the remote mutation', async () => {
+  it('returns verified success with an explicit stop warning after the remote mutation', async () => {
     vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
     vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
-    const { daytona } = fakeDaytona();
-    daytona.delete.mockRejectedValue(new Error('cleanup unavailable'));
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
+    const { daytona, stop } = fakeDaytona();
+    stop.mockRejectedValue(new Error('stop unavailable'));
     const executor = new DaytonaRollbackExecutor(() => daytona);
 
-    await expect(
-      executor.execute({ deployId: '9921', deployCommit }),
-    ).resolves.toEqual(
+    await expect(executor.execute(rollbackRequest)).resolves.toEqual(
       expect.objectContaining({
         remote_sha: revertSha,
-        sandbox_deleted: false,
-        cleanup_error: 'cleanup unavailable',
+        sandbox_stopped: false,
+        cleanup_error: 'stop unavailable',
       }),
     );
   });
 
-  it('rejects nonzero commands and still deletes the sandbox', async () => {
+  it('rejects nonzero code runs and still stops the sandbox', async () => {
     vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
     vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
-    const { daytona } = fakeDaytona({
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
+    const { daytona, stop } = fakeDaytona({
       exitCode: 41,
       result: 'remote SHA mismatch',
     });
     const executor = new DaytonaRollbackExecutor(() => daytona);
 
-    await expect(
-      executor.execute({ deployId: '9921', deployCommit }),
-    ).rejects.toThrow('exit code 41');
-    expect(daytona.delete).toHaveBeenCalledOnce();
+    await expect(executor.execute(rollbackRequest)).rejects.toThrow(
+      'exit code 41',
+    );
+    expect(stop).toHaveBeenCalledWith(120, true);
   });
 
-  it('preserves execution and cleanup errors together', async () => {
+  it('preserves execution and stop errors together', async () => {
     vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
     vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
-    const { daytona } = fakeDaytona({
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
+    const { daytona, stop } = fakeDaytona({
       exitCode: 41,
       result: 'remote SHA mismatch',
     });
-    daytona.delete.mockRejectedValue(new Error('cleanup unavailable'));
+    stop.mockRejectedValue(new Error('stop unavailable'));
     const executor = new DaytonaRollbackExecutor(() => daytona);
 
     const failure = await executor
-      .execute({ deployId: '9921', deployCommit })
+      .execute(rollbackRequest)
       .catch((error: unknown) => error);
     expect(failure).toBeInstanceOf(AggregateError);
     const errors = (failure as AggregateError).errors as unknown[];
@@ -208,12 +237,13 @@ describe('DaytonaRollbackExecutor', () => {
     expect(errors[0]).toBeInstanceOf(Error);
     expect(errors[1]).toBeInstanceOf(Error);
     expect((errors[0] as Error).message).toContain('exit code 41');
-    expect((errors[1] as Error).message).toBe('cleanup unavailable');
+    expect((errors[1] as Error).message).toBe('stop unavailable');
   });
 
   it('rejects unverified recovery evidence', async () => {
     vi.stubEnv('DAYTONA_API_KEY', 'daytona-test-key');
     vi.stubEnv('GITHUB_DEMO_TOKEN', 'github-test-token');
+    vi.stubEnv('DAYTONA_SNAPSHOT', 'trueforge-build-test');
     const { daytona } = fakeDaytona({
       exitCode: 0,
       result: verifiedOutput({
@@ -228,9 +258,9 @@ describe('DaytonaRollbackExecutor', () => {
     });
     const executor = new DaytonaRollbackExecutor(() => daytona);
 
-    await expect(
-      executor.execute({ deployId: '9921', deployCommit }),
-    ).rejects.toThrow('post-evidence did not verify recovery');
+    await expect(executor.execute(rollbackRequest)).rejects.toThrow(
+      'post-evidence did not verify recovery',
+    );
   });
 });
 
@@ -246,6 +276,8 @@ describe('rollback_execute tool', () => {
         arguments: {
           incident_id: 'INC-4821',
           deploy_id: '9921',
+          repository_url: repositoryUrl,
+          branch,
           requested_by: 'operator',
           reason: 'Deploy immediately preceded per-item database round trips',
         },
@@ -280,7 +312,7 @@ describe('rollback_execute tool', () => {
       },
       remote_sha: revertSha,
       tests_passed: true,
-      sandbox_deleted: true,
+      sandbox_stopped: true,
     };
     const execute = vi.fn().mockResolvedValue(execution);
     const executor: RollbackExecutor = { execute };
@@ -293,6 +325,8 @@ describe('rollback_execute tool', () => {
         arguments: {
           incident_id: 'INC-4821',
           deploy_id: '9921',
+          repository_url: repositoryUrl,
+          branch,
           requested_by: 'operator',
           reason: 'Deploy immediately preceded per-item database round trips',
         },
@@ -310,6 +344,8 @@ describe('rollback_execute tool', () => {
       expect(execute).toHaveBeenCalledWith({
         deployId: '9921',
         deployCommit,
+        repositoryUrl,
+        branch,
       });
       const events = store.listAudit('INC-4821').events;
       expect(events.at(-1)?.action).toBe('remediation.rollback_executed');
@@ -339,6 +375,8 @@ describe('rollback_execute tool', () => {
         arguments: {
           incident_id: 'INC-4821',
           deploy_id: '9921',
+          repository_url: repositoryUrl,
+          branch,
           requested_by: 'operator',
           reason: 'Deploy immediately preceded per-item database round trips',
         },

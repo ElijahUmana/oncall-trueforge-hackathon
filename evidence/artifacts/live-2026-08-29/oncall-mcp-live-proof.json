@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "live_integration_enabled": true,
+  "test_files_passed": 3,
+  "tests_passed": 5,
+  "exit_code": 0,
+  "trueforge_base_url": "http://127.0.0.1:8790",
+  "mcp_base_url": "http://127.0.0.1:8941"
+}

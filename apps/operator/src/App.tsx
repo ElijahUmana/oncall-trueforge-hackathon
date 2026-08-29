@@ -1,5 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
-import { TrueForgeUI, type SlotOverrides } from '@truefoundry/trueforge-ui';
+import { useCallback, useState } from 'react';
+import {
+  getErrorMessage,
+  TrueForgeUI,
+  type RoutesConfig,
+  type SlotOverrides,
+  type ThemeConfig,
+} from '@truefoundry/trueforge-ui';
 import { DEFAULT_AGENT_NAME, DEFAULT_INCIDENT_ID, triggerAlert } from './alert';
 import {
   OperatorApprovalBar,
@@ -27,27 +33,69 @@ const overrides: SlotOverrides = {
   MessageErrorBanner: OperatorErrorBanner,
 };
 
+const server = {
+  type: 'trueforge' as const,
+  baseUrl,
+};
+
+const agentConfig = { mode: 'SingleAgent' as const, name: agentName };
+
+const routes: RoutesConfig = {
+  paths: {
+    root: '/',
+    session: '/sessions/:sessionId',
+    agent: false,
+    settings: false,
+  },
+};
+
+const theme: ThemeConfig = {
+  preset: 'trueforge',
+  mode: 'dark',
+  brand: { name: 'ONCALL' },
+  tokens: {
+    primaryBg: '#08110e',
+    secondaryBg: '#0d1814',
+    sidebarBg: '#07100d',
+    topbarBg: '#0b1512',
+    cardBg: '#101d18',
+    textPrimary: '#f2f7f4',
+    textSecondary: '#9aaba2',
+    border: '#25372f',
+    primaryButtonBg: '#f3c969',
+    primaryButtonHover: '#ffda7f',
+    primaryButtonText: '#171307',
+    failureBg: '#ff6b5f',
+    radius: '0.6rem',
+  },
+  classNames: {
+    markdown: 'operator-markdown',
+    openui: {
+      root: 'operator-openui-root',
+      scope: 'operator-openui-scope',
+    },
+  },
+};
+
+const errorFallback =
+  'TrueForge did not accept the alert. Check the harness connection and agent registration.';
+
 type TriggerState =
   | { status: 'idle' }
   | { status: 'submitting' }
   | { status: 'error'; message: string };
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) return error.message;
-  return 'TrueForge did not accept the alert. Check the harness connection and agent registration.';
-}
-
 export default function App() {
   const [triggerState, setTriggerState] = useState<TriggerState>({
     status: 'idle',
   });
-  const server = useMemo(
-    () => ({
-      type: 'trueforge' as const,
-      baseUrl,
-    }),
-    [],
-  );
+
+  const onError = useCallback((error: unknown) => {
+    setTriggerState({
+      status: 'error',
+      message: getErrorMessage(error, errorFallback),
+    });
+  }, []);
 
   const onTrigger = useCallback(async () => {
     setTriggerState({ status: 'submitting' });
@@ -59,9 +107,9 @@ export default function App() {
       });
       window.location.assign(`/sessions/${encodeURIComponent(sessionId)}`);
     } catch (error) {
-      setTriggerState({ status: 'error', message: getErrorMessage(error) });
+      onError(error);
     }
-  }, []);
+  }, [onError]);
 
   return (
     <main className="operator-shell">
@@ -114,50 +162,12 @@ export default function App() {
         <TrueForgeUI
           server={server}
           layout="sidebar"
-          agentConfig={{ mode: 'SingleAgent', name: agentName }}
+          agentConfig={agentConfig}
           withRouter
-          routes={{
-            paths: {
-              root: '/',
-              session: '/sessions/:sessionId',
-              agent: false,
-              settings: false,
-            },
-          }}
+          routes={routes}
           overrides={overrides}
-          theme={{
-            preset: 'trueforge',
-            mode: 'dark',
-            brand: { name: 'ONCALL' },
-            tokens: {
-              primaryBg: '#08110e',
-              secondaryBg: '#0d1814',
-              sidebarBg: '#07100d',
-              topbarBg: '#0b1512',
-              cardBg: '#101d18',
-              textPrimary: '#f2f7f4',
-              textSecondary: '#9aaba2',
-              border: '#25372f',
-              primaryButtonBg: '#f3c969',
-              primaryButtonHover: '#ffda7f',
-              primaryButtonText: '#171307',
-              failureBg: '#ff6b5f',
-              radius: '0.6rem',
-            },
-            classNames: {
-              markdown: 'operator-markdown',
-              openui: {
-                root: 'operator-openui-root',
-                scope: 'operator-openui-scope',
-              },
-            },
-          }}
-          onError={error =>
-            setTriggerState({
-              status: 'error',
-              message: getErrorMessage(error),
-            })
-          }
+          theme={theme}
+          onError={onError}
           className="trueforge-console"
         />
       </section>

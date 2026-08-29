@@ -1,5 +1,9 @@
 import { Daytona } from '@daytona/sdk';
 
+export const ROLLBACK_REPOSITORY_URL =
+  'https://github.com/ElijahUmana/oncall-demo-svc.git' as const;
+export const ROLLBACK_BRANCH = 'main' as const;
+
 export interface RollbackEvidence {
   requests: number;
   errors: number;
@@ -11,6 +15,8 @@ export interface RollbackEvidence {
 export interface RollbackExecutionRequest {
   deployId: string;
   deployCommit: string;
+  repositoryUrl: typeof ROLLBACK_REPOSITORY_URL;
+  branch: typeof ROLLBACK_BRANCH;
 }
 
 export interface RollbackExecutionResult {
@@ -22,7 +28,7 @@ export interface RollbackExecutionResult {
   post_evidence: RollbackEvidence;
   remote_sha: string;
   tests_passed: boolean;
-  sandbox_deleted: boolean;
+  sandbox_stopped: boolean;
   cleanup_error?: string;
 }
 
@@ -38,13 +44,13 @@ interface ExecuteResponseLike {
 interface SandboxLike {
   id: string;
   process: {
-    executeCommand(
-      command: string,
-      cwd?: string,
-      env?: Record<string, string>,
+    codeRun(
+      code: string,
+      params?: { env?: Record<string, string> },
       timeout?: number,
     ): Promise<ExecuteResponseLike>;
   };
+  stop(timeout?: number, force?: boolean): Promise<void>;
 }
 
 interface DaytonaLike {
@@ -52,13 +58,20 @@ interface DaytonaLike {
     params?: Record<string, unknown>,
     options?: { timeout?: number },
   ): Promise<SandboxLike>;
-  delete(sandbox: SandboxLike, timeout?: number, wait?: boolean): Promise<void>;
 }
 
-const repositoryUrl = 'https://github.com/ElijahUmana/oncall-demo-svc.git';
+const repositoryUrl = ROLLBACK_REPOSITORY_URL;
 const repositoryDirectory = '/workspace/oncall-demo-svc';
-const branch = 'main';
+const branch = ROLLBACK_BRANCH;
 const resultMarker = '__ONCALL_ROLLBACK_RESULT__';
+
+function requireConfiguration(name: 'DAYTONA_SNAPSHOT'): string {
+  const value = process.env[name];
+  if (value === undefined || value.length === 0) {
+    throw new Error(`Rollback unavailable: ${name} is not configured`);
+  }
+  return value;
+}
 
 function requireCredential(
   name: 'DAYTONA_API_KEY' | 'GITHUB_DEMO_TOKEN',
@@ -72,7 +85,9 @@ function requireCredential(
 
 function rollbackScript(): string {
   return `set -euo pipefail
+mkdir -p /workspace
 repo_dir=${repositoryDirectory}
+test ! -e "$repo_dir"
 git clone --branch ${branch} --single-branch ${repositoryUrl} "$repo_dir"
 cd "$repo_dir"
 actual_head="$(git rev-parse HEAD)"
@@ -80,7 +95,7 @@ if [ "$actual_head" != "$DEPLOY_COMMIT" ]; then
   printf 'Expected deploy %s but remote %s is at %s\\n' "$DEPLOY_COMMIT" "$GITHUB_REPOSITORY" "$actual_head" >&2
   exit 41
 fi
-EXPECTED_CHECKOUT_STATUS=503 ./verify-incident.sh >/tmp/pre-evidence.json
+CHECKOUT_DB_ROUND_TRIP_MS=34 EXPECTED_CHECKOUT_STATUS=503 ./verify-incident.sh >/tmp/pre-evidence.json
 git reset --hard HEAD
 git clean -fdX incident-evidence
 git config user.name "$GIT_AUTHOR_NAME"
@@ -88,7 +103,7 @@ git config user.email "$GIT_AUTHOR_EMAIL"
 git revert --no-edit "$DEPLOY_COMMIT"
 revert_sha="$(git rev-parse HEAD)"
 ./run-tests.sh
-EXPECTED_CHECKOUT_STATUS=201 ./verify-incident.sh >/tmp/post-evidence.json
+CHECKOUT_DB_ROUND_TRIP_MS=34 EXPECTED_CHECKOUT_STATUS=201 ./verify-incident.sh >/tmp/post-evidence.json
 cat > /tmp/git-askpass.sh <<'ASKPASS'
 #!/bin/sh
 case "$1" in
@@ -98,6 +113,7 @@ case "$1" in
 esac
 ASKPASS
 chmod 700 /tmp/git-askpass.sh
+trap 'rm -f /tmp/git-askpass.sh' EXIT
 GIT_ASKPASS=/tmp/git-askpass.sh GIT_TERMINAL_PROMPT=0 git push origin "HEAD:${branch}"
 remote_sha="$(GIT_ASKPASS=/tmp/git-askpass.sh GIT_TERMINAL_PROMPT=0 git ls-remote origin "refs/heads/${branch}" | cut -f1)"
 if [ "$remote_sha" != "$revert_sha" ]; then
@@ -129,6 +145,25 @@ print("${resultMarker}" + json.dumps({
     "tests_passed": True,
 }))
 PY`;
+}
+
+function rollbackCode(): string {
+  return `import os
+import subprocess
+import sys
+
+script = ${JSON.stringify(rollbackScript())}
+process = subprocess.run(
+    ["/bin/bash", "-lc", script],
+    cwd="/",
+    env=os.environ.copy(),
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    text=True,
+)
+sys.stdout.write(process.stdout)
+raise SystemExit(process.returncode)
+`;
 }
 
 function parseExecutionResult(
@@ -197,7 +232,7 @@ function parseExecutionResult(
     post_evidence: postEvidence,
     remote_sha: remoteSha,
     tests_passed: true,
-    sandbox_deleted: false,
+    sandbox_stopped: false,
   };
 }
 
@@ -248,6 +283,15 @@ export class DaytonaRollbackExecutor implements RollbackExecutor {
   ): Promise<RollbackExecutionResult> {
     const apiKey = requireCredential('DAYTONA_API_KEY');
     const githubToken = requireCredential('GITHUB_DEMO_TOKEN');
+    const snapshot = requireConfiguration('DAYTONA_SNAPSHOT');
+    if (
+      request.repositoryUrl !== repositoryUrl ||
+      request.branch !== branch
+    ) {
+      throw new Error(
+        'Rollback target does not match the approved repository and branch',
+      );
+    }
     const daytona = this.#daytonaFactory(apiKey);
     let sandbox: SandboxLike | undefined;
     let result: RollbackExecutionResult | undefined;
@@ -255,9 +299,8 @@ export class DaytonaRollbackExecutor implements RollbackExecutor {
     try {
       sandbox = await daytona.create(
         {
-          language: 'python',
+          snapshot,
           ephemeral: true,
-          autoDeleteInterval: 30,
           labels: {
             purpose: 'oncall-approved-rollback',
             deploy: request.deployId,
@@ -265,15 +308,16 @@ export class DaytonaRollbackExecutor implements RollbackExecutor {
         },
         { timeout: 120 },
       );
-      const response = await sandbox.process.executeCommand(
-        rollbackScript(),
-        '/workspace',
+      const response = await sandbox.process.codeRun(
+        rollbackCode(),
         {
-          DEPLOY_COMMIT: request.deployCommit,
-          GITHUB_DEMO_TOKEN: githubToken,
-          GITHUB_REPOSITORY: repositoryUrl,
-          GIT_AUTHOR_NAME: 'Elijah Umana',
-          GIT_AUTHOR_EMAIL: 'elijahsam2020@gmail.com',
+          env: {
+            DEPLOY_COMMIT: request.deployCommit,
+            GITHUB_DEMO_TOKEN: githubToken,
+            GITHUB_REPOSITORY: request.repositoryUrl,
+            GIT_AUTHOR_NAME: 'Elijah Umana',
+            GIT_AUTHOR_EMAIL: 'elijahsam2020@gmail.com',
+          },
         },
         300,
       );
@@ -289,21 +333,22 @@ export class DaytonaRollbackExecutor implements RollbackExecutor {
 
     if (sandbox !== undefined) {
       try {
-        await daytona.delete(sandbox, 120, true);
+        await sandbox.stop(120, true);
         if (result !== undefined) {
-          result.sandbox_deleted = true;
+          result.sandbox_stopped = true;
         }
       } catch (cleanupError) {
         if (failure !== undefined) {
           failure = new AggregateError(
             [failure, cleanupError],
-            `Rollback failed and Daytona sandbox ${sandbox.id} cleanup also failed`,
+            `Rollback failed and Daytona sandbox ${sandbox.id} stop also failed`,
+            { cause: failure },
           );
         } else if (result !== undefined) {
           result.cleanup_error =
             cleanupError instanceof Error
               ? cleanupError.message
-              : 'Daytona sandbox cleanup failed with a non-Error value';
+              : 'Daytona sandbox stop failed with a non-Error value';
         }
       }
     }
