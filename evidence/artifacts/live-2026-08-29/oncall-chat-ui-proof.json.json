@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:32:15.863Z",
+  "surface": "chat-ui",
+  "check": "playwright-chat-ui-sanitized",
+  "source": "../../../../../tmp/oncall-chat-ui-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-chat-ui-proof.json",
+  "sha256": "497290fff3881144abfaf89e314020cad2f07e4afd4271c507cd8b194554f8c9",
+  "bytes": 124
+}

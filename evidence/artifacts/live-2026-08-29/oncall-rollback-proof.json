@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "bad_commit": "b9c9167e17ed9e5a1159edcadedf1e5349550dbc",
+  "revert_sha": "d3672115c7fc562083b5efc82b9ffe142ad064fb",
+  "pre": {
+    "status": "degraded",
+    "requests": 25,
+    "errors": 3,
+    "error_rate": 0.12,
+    "p99_ms": 6786.2
+  },
+  "post": {
+    "status": "healthy",
+    "requests": 25,
+    "errors": 0,
+    "error_rate": 0,
+    "p99_ms": 91.3
+  },
+  "tests_passed": true,
+  "worktree_clean": true
+}

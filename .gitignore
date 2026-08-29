@@ -13,7 +13,11 @@ coverage/
 .oncall/
 .eslintcache
 .prettiercache
+*.tsbuildinfo
 playwright-report/
 test-results/
 evidence/artifacts/*
 !evidence/artifacts/.gitkeep
+!evidence/artifacts/live-2026-08-29/
+!evidence/artifacts/live-2026-08-29/**
+evidence/artifacts/live-2026-08-29/index.html

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:06:37.501Z",
+  "surface": "saved-agent",
+  "check": "live-saved-agent",
+  "source": "../../../../../tmp/oncall-saved-agent-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-saved-agent-proof.json",
+  "sha256": "09d14d7db61326f36b1acb731a46d6f91e28c5de464a1d07381ffd2329e45ba0",
+  "bytes": 357
+}

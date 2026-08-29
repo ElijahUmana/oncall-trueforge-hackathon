@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "01m17hws1n7eqc779xe44qm0m4",
+  "name": "oncall-incident-responder",
+  "model": "fireworks/glm-5p2",
+  "mcp_servers": [
+    "checkout-svc-sim"
+  ],
+  "skills": [
+    "oncall-runbook"
+  ],
+  "capabilities": {
+    "sandbox": true,
+    "dynamic_sub_agents": true,
+    "generative_ui": true,
+    "ask_user_questions": true
+  }
+}

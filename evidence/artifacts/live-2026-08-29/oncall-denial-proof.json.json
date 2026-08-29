@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:03:37.983Z",
+  "surface": "approval-gates",
+  "check": "live-denial",
+  "source": "../../../../../tmp/oncall-denial-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json",
+  "sha256": "c4567d2504c5855a4b6a83a7503a2f8de6baab01770806a20bba7dc3cd103034",
+  "bytes": 550
+}

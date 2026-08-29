@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2023",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "agent/**/*.mjs",
+    "eslint.config.mjs",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "scripts/**/*.mjs",
+    "tests/**/*.ts"
+  ],
+  "exclude": ["node_modules", "evidence/artifacts"]
+}

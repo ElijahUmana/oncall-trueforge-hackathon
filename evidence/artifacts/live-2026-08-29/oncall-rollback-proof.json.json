@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:37:35.195Z",
+  "surface": "mcp-connectors",
+  "check": "local-rollback-pre-post",
+  "source": "../../../../../tmp/oncall-rollback-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-rollback-proof.json",
+  "sha256": "a3636ea67d9c16924b858ac9e2ac69d7ad3c64c82d3e2ed7cdd08beb43e1e1f3",
+  "bytes": 438
+}

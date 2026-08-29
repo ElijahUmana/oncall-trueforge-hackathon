@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17hv1bejtbsyf4tdq34g2j5",
+  "approval_turn_id": "01m17hv1d4ktdkh9t6ksbytavx.local",
+  "denial_turn_id": "01m17hvmy5x3kx7fme4axfpa2q.local",
+  "approval_event_id": "01m17hv346mc1n23n5pkv1w4sm",
+  "tool_call_id": "chatcmpl-tool-b450af5cec348df4",
+  "denial_recorded": true,
+  "connector_result_returned": false,
+  "final_status": "done",
+  "remaining_required_actions": 0,
+  "sse_event_types": [
+    "turn.created",
+    "mcp.initialize",
+    "tool.response",
+    "model.message.delta",
+    "turn.done"
+  ]
+}

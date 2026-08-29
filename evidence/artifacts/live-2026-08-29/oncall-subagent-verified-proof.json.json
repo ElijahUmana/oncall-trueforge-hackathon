@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:08:10.332Z",
+  "surface": "dynamic-subagents",
+  "check": "live-four-siblings",
+  "source": "../../../../../tmp/oncall-subagent-verified-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-subagent-verified-proof.json",
+  "sha256": "f05cbb026751a21b56342ab0e002d41eca015f180defb9cd715985913b0fd444",
+  "bytes": 1101
+}

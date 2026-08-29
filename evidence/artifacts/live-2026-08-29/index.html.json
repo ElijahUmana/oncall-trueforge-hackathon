@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:00:27.295Z",
+  "surface": "chat-ui",
+  "check": "playwright-chat-ui",
+  "source": "evidence/artifacts/playwright-report/index.html",
+  "artifact": "evidence/artifacts/live-2026-08-29/index.html",
+  "sha256": "087022829f5879e2ca52f6b1aa902ef1b794fe6c272b390229e59dab7fdb0f4a",
+  "bytes": 517003
+}

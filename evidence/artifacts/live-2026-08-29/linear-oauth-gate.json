@@ -1,0 +1,38 @@
+{
+  "captured_at": "2026-08-29T20:20:00Z",
+  "trueforge_base_url": "http://127.0.0.1:8790",
+  "catalog_manifest": {
+    "type": "remote",
+    "name": "linear",
+    "url": "https://mcp.linear.app/mcp",
+    "description": "Search, read, and create Linear issues.",
+    "auth": {
+      "type": "dcr"
+    }
+  },
+  "configuration": {
+    "http_status": 201,
+    "auth_status_at_capture": "auth_required",
+    "final_auth_status": "authenticated"
+  },
+  "oauth": {
+    "flow": "dynamic client registration with PKCE",
+    "callback": "http://localhost:8790/api/v1/mcp-servers/oauth/callback",
+    "consent_page_title": "truefoundry-harness | Authorization Request",
+    "requested_access": [
+      "Read",
+      "Write"
+    ],
+    "interactive_control": {
+      "role": "button",
+      "label": "Approve",
+      "enabled": true
+    },
+    "consent_submitted": true
+  },
+  "verification": {
+    "tool_discovery": "verified_57_tools",
+    "issue_create_read": "verified_ELI-5",
+    "native_approval_gate": "verified"
+  }
+}

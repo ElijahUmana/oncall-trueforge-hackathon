@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "surfaces": [
+    {
+      "id": "mcp-connectors",
+      "name": "MCP tools and custom connector",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/mcp-servers.mdx",
+      "status": "verified",
+      "checks": ["live-integration"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-live-integration.txt"
+      ]
+    },
+    {
+      "id": "dynamic-subagents",
+      "name": "Dynamic subagents",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/key-features/subagents.mdx",
+      "status": "verified",
+      "checks": ["live-four-siblings"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-subagent-verified-proof.json"
+      ]
+    },
+    {
+      "id": "sandbox-as-tool",
+      "name": "Sandbox execution",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/sandbox.mdx",
+      "status": "verified",
+      "checks": ["live-native-sandbox"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-sandbox-success-proof.json"
+      ]
+    },
+    {
+      "id": "skills",
+      "name": "Git-backed skills",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/skills.mdx",
+      "status": "unverified",
+      "checks": [],
+      "artifacts": []
+    },
+    {
+      "id": "approval-gates",
+      "name": "Tool approval gates",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/create-agent/overview.mdx",
+      "status": "verified",
+      "checks": ["live-denial"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json"
+      ]
+    },
+    {
+      "id": "ask-user-questions",
+      "name": "Ask user questions",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/create-agent/overview.mdx",
+      "status": "verified",
+      "checks": ["live-question-response"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-question-proof.json"
+      ]
+    },
+    {
+      "id": "generative-ui",
+      "name": "Generative UI",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/create-agent/overview.mdx",
+      "status": "verified",
+      "checks": ["live-openui-render"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-openui-browser-proof.json"
+      ]
+    },
+    {
+      "id": "code-mode",
+      "name": "Code Mode",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/key-features/code-mode.mdx",
+      "status": "verified",
+      "checks": ["live-mcp-bridge"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-code-mode-proof.json"
+      ]
+    },
+    {
+      "id": "large-tool-response",
+      "name": "Large tool response offloading",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/key-features/large-tool-responses.mdx",
+      "status": "verified",
+      "checks": ["live-combined-offload"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-large-response-verified-proof.json"
+      ]
+    },
+    {
+      "id": "persistent-sessions",
+      "name": "Persistent sessions",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/api/overview.mdx",
+      "status": "unverified",
+      "checks": [],
+      "artifacts": []
+    },
+    {
+      "id": "saved-agent",
+      "name": "Saved reusable agent",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/agent-library.mdx",
+      "status": "verified",
+      "checks": ["live-saved-agent"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-saved-agent-proof.json"
+      ]
+    },
+    {
+      "id": "sse-streaming",
+      "name": "SSE turn streaming",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/api/quickstart.mdx",
+      "status": "verified",
+      "checks": ["live-denial"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json"
+      ]
+    },
+    {
+      "id": "chat-ui",
+      "name": "Bundled chat UI",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/chat-ui.mdx",
+      "status": "verified",
+      "checks": ["playwright-chat-ui-sanitized"],
+      "artifacts": [
+        "evidence/artifacts/live-2026-08-29/oncall-chat-ui-proof.json"
+      ]
+    },
+    {
+      "id": "sdk-automation",
+      "name": "TypeScript SDK automation",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/api/quickstart.mdx",
+      "status": "verified",
+      "checks": ["live-sdk-read"],
+      "artifacts": ["evidence/artifacts/live-2026-08-29/oncall-sdk-proof.json"]
+    },
+    {
+      "id": "lifecycle-hooks",
+      "name": "Lifecycle hooks",
+      "officialSource": "https://github.com/truefoundry/trueforge/tree/main",
+      "status": "unsupported",
+      "checks": [],
+      "artifacts": [],
+      "reason": "No lifecycle-hook implementation or documentation was found in the official main-branch tree inspected on 2026-08-29. Re-evaluate against a specific released revision before claiming support."
+    },
+    {
+      "id": "agent-json-import",
+      "name": "Direct agent.json import",
+      "officialSource": "https://github.com/truefoundry/trueforge/blob/main/packages/trueforge-core/src/agent-session/schemas/agentSpec.ts",
+      "status": "unsupported",
+      "checks": [],
+      "artifacts": [],
+      "reason": "AgentSpec is an API payload schema and excludes the planned top-level name and timeout_seconds fields; no direct agent.json import contract has been verified."
+    }
+  ]
+}

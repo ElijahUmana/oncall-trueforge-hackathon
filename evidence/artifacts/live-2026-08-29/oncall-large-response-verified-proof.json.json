@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:31:04.463Z",
+  "surface": "large-tool-response",
+  "check": "live-combined-offload",
+  "source": "../../../../../tmp/oncall-large-response-verified-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-large-response-verified-proof.json",
+  "sha256": "f6e66011e8f3740d54296e032355c6efec93e130cfef09830a94f27b28b88d71",
+  "bytes": 268
+}

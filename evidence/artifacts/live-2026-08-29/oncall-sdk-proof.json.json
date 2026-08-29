@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:20:37.748Z",
+  "surface": "sdk-automation",
+  "check": "live-sdk-read",
+  "source": "../../../../../tmp/oncall-sdk-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-sdk-proof.json",
+  "sha256": "bf00a5165e6fd52a3b0e377f1c6c22875afa8da992e60a9acc0a8203d07cdc57",
+  "bytes": 312
+}

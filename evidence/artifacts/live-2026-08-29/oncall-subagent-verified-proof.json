@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17j41ex4x0jtxcvw2xgdzvd",
+  "threads": [
+    {
+      "thread_id": "f0622f7c-5dab-46aa-ad19-1f0997fbee66",
+      "title": "log-analyzer",
+      "created_at": "2026-08-29T20:07:09.024Z",
+      "status": "done",
+      "tool_responses": 1,
+      "tool_errors": 0
+    },
+    {
+      "thread_id": "571d0d3c-9fa7-4612-b594-68f502c278a4",
+      "title": "metrics-analyzer",
+      "created_at": "2026-08-29T20:07:09.025Z",
+      "status": "done",
+      "tool_responses": 1,
+      "tool_errors": 0
+    },
+    {
+      "thread_id": "6138ab5f-f0e4-415f-aa53-0dd7e4dd97a5",
+      "title": "deploy-investigator",
+      "created_at": "2026-08-29T20:07:09.025Z",
+      "status": "done",
+      "tool_responses": 1,
+      "tool_errors": 0
+    },
+    {
+      "thread_id": "7f447d95-b67f-454e-a5bc-25fe6c8bf699",
+      "title": "code-blame",
+      "created_at": "2026-08-29T20:07:09.026Z",
+      "status": "done",
+      "tool_responses": 1,
+      "tool_errors": 0
+    }
+  ],
+  "creation_spread_ms": 2,
+  "all_siblings_created_before_first_done": true,
+  "turn_status": "done"
+}

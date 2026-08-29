@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:27:50.497Z",
+  "surface": "generative-ui",
+  "check": "live-openui-render",
+  "source": "../../../../../tmp/oncall-openui-browser-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-openui-browser-proof.json",
+  "sha256": "a87d147fa270db0fd17e4037d07cc5d1d7663264c4a3d184fea98d20b0db0a62",
+  "bytes": 162
+}

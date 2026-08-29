@@ -1,0 +1,47 @@
+{
+  "name": "@oncall/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.16.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write package.json pnpm-workspace.yaml tsconfig.json eslint.config.mjs vitest.config.ts playwright.config.ts .prettierrc.json .github/workflows/ci.yml agent scripts tests evidence/surface-matrix.json",
+    "format:check": "prettier --check package.json pnpm-workspace.yaml tsconfig.json eslint.config.mjs vitest.config.ts playwright.config.ts .prettierrc.json .github/workflows/ci.yml agent scripts tests evidence/surface-matrix.json",
+    "lint": "eslint eslint.config.mjs playwright.config.ts vitest.config.ts agent scripts tests --max-warnings 0 && pnpm -r --if-present lint",
+    "typecheck": "tsc --noEmit && pnpm -r --if-present typecheck",
+    "test": "vitest run --project unit --project integration && pnpm -r --if-present test",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "trueforge:bootstrap": "node scripts/bootstrap-trueforge.mjs",
+    "oncall:session": "node scripts/oncall-session.mjs",
+    "verify:env": "node scripts/verify-env.mjs",
+    "verify:client-env": "node scripts/verify-client-env.mjs",
+    "verify:secrets": "node scripts/verify-secret-hygiene.mjs",
+    "verify:rollback": "node scripts/verify-rollback-identity.mjs",
+    "verify:repository": "node scripts/verify-repository-layout.mjs",
+    "verify:publication": "node scripts/verify-publication-index.mjs",
+    "verify:remediation": "node scripts/verify-remediation-contract.mjs",
+    "verify:surfaces": "node scripts/verify-surfaces.mjs",
+    "verify": "pnpm verify:env && pnpm verify:client-env && pnpm verify:secrets && pnpm verify:repository && pnpm verify:publication && pnpm verify:rollback && pnpm verify:remediation && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm verify:surfaces",
+    "verify:live": "node scripts/verify-live-env.mjs && node scripts/verify-live-skills.mjs && pnpm test:integration && pnpm test:e2e",
+    "evidence:capture": "node scripts/capture-evidence.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@playwright/test": "1.62.1",
+    "@types/node": "26.4.0",
+    "eslint": "10.9.1",
+    "globals": "16.4.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.68.0",
+    "vitest": "4.1.11"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17ke54efmwpy0zh519bpks8",
+  "unique_tool_call_ids": 16,
+  "tool_responses": 16,
+  "offloaded_responses": 8,
+  "unique_offload_paths": 8,
+  "path_prefix": "tool-results/",
+  "sandbox_created": true,
+  "turn_status": "done"
+}

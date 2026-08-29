@@ -1,0 +1,4 @@
+[submodule "demo-svc"]
+	path = demo-svc
+	url = https://github.com/ElijahUmana/oncall-demo-svc.git
+	branch = main

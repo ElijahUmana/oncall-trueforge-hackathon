@@ -1,0 +1,64 @@
+{
+  "captured_at": "2026-08-29T20:36:38.002Z",
+  "connector": {
+    "name": "linear",
+    "url": "https://mcp.linear.app/mcp",
+    "auth_type": "dcr",
+    "auth_status": "authenticated",
+    "discovered_tool_count": 57,
+    "verified_tools": [
+      "get_workspace",
+      "list_teams",
+      "save_issue",
+      "get_issue"
+    ]
+  },
+  "trueforge": {
+    "agent_id": "01m17kq2afq8dfby5w4wbs5e6g",
+    "agent_name": "oncall-linear-closeout-probe",
+    "session_id": "01m17kq9x327wmmxmbjdy3evek",
+    "turn_ids": {
+      "discovery": "01m17kq9z11dr3d8y9cqymm7hd.local",
+      "approval_pause": "01m17krmn6pe41rhq5sj8ka6qe.local",
+      "approved_execution": "01m17ks9ywsaqf8qbjnarmqkng.local"
+    },
+    "approval_event_id": "01m17krs7ef9rsdmgqan54ap6b",
+    "save_issue_tool_call_id": "chatcmpl-tool-afad6a9e731195e4",
+    "save_issue_response_event_id": "01m17ksbny0tv0kqnbddsenzb8",
+    "get_issue_tool_call_id": "chatcmpl-tool-be160ea27a39c1b5",
+    "get_issue_response_event_id": "01m17ksenmwp0tfq89wfd5jegv",
+    "event_counts": {
+      "tool.approval_required": 1,
+      "tool.response": 4,
+      "turn.created": 3,
+      "turn.done": 3
+    }
+  },
+  "linear": {
+    "workspace_id": "c4b13d33-a9c4-4a6d-abe1-67fdd9f655b9",
+    "workspace_name": "Elijah",
+    "workspace_url": "https://linear.app/elijah-trueforge-20260829",
+    "team_id": "3f43006b-4b92-4951-ab79-20ca806153df",
+    "team_name": "Elijah",
+    "team_key": "ELI",
+    "issue_identifier": "ELI-5",
+    "issue_title": "ONCALL follow-up: guard checkout bulk-write performance (INC-4821)",
+    "issue_url": "https://linear.app/elijah-trueforge-20260829/issue/ELI-5/oncall-follow-up-guard-checkout-bulk-write-performance-inc-4821",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "assignee": "Elijah Umana",
+    "status": "Backlog"
+  },
+  "verification": {
+    "save_issue_approval_required": true,
+    "save_issue_succeeded": true,
+    "get_issue_read_back_succeeded": true,
+    "title_match": true,
+    "description_match": true,
+    "team_match": true,
+    "priority_match": true,
+    "assignee_match": true
+  }
+}

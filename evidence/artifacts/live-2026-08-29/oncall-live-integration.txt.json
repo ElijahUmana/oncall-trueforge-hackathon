@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:00:27.196Z",
+  "surface": "mcp-connectors",
+  "check": "live-integration",
+  "source": "../../../../../tmp/oncall-live-integration.txt",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-live-integration.txt",
+  "sha256": "445681916751a1ebd0c624d5ab7795f9259a48442fe30c38148754481995f419",
+  "bytes": 277
+}

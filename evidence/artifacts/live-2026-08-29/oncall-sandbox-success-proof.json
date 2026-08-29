@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17k6e1dd7d0jksvzvdm7ska",
+  "sandbox_created": true,
+  "sandbox_provider": "local",
+  "command_exit_code": 0,
+  "marker_observed": true,
+  "turn_status": "done",
+  "event_types": [
+    "turn.created",
+    "model.message",
+    "model.message.delta",
+    "sandbox.created",
+    "tool.response",
+    "turn.done"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:26:13.376Z",
+  "surface": "sandbox-as-tool",
+  "check": "live-native-sandbox",
+  "source": "../../../../../tmp/oncall-sandbox-success-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-sandbox-success-proof.json",
+  "sha256": "7de892472215b335e743dfc3df16ec9bc04e191a9fbc5788563bf55eeb549506",
+  "bytes": 359
+}

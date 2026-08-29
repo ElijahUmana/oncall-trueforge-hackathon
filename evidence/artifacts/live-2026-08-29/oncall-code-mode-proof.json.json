@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:29:23.384Z",
+  "surface": "code-mode",
+  "check": "live-mcp-bridge",
+  "source": "../../../../../tmp/oncall-code-mode-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-code-mode-proof.json",
+  "sha256": "7876ed10f17a8c98b9a5dcc3ae78cda3ed081d64a0ea529fded59982b627f853",
+  "bytes": 401
+}

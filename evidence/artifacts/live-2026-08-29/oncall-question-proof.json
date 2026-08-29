@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17jxwzmchnnx3dxwg7tgcm6",
+  "question_turn_id": "01m17jxx14s55874nm44ph390k.local",
+  "response_turn_id": "01m17jzbvm2xk93af390snfebf.local",
+  "question_event": "tool.response_required",
+  "submitted_event": "user.tool_response",
+  "selected_option": "Investigate",
+  "final_status": "done",
+  "remaining_required_actions": 0
+}

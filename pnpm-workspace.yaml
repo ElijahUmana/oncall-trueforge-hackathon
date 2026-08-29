@@ -1,0 +1,22 @@
+packages:
+  - apps/*
+  - demo-svc
+  - mcp-servers/*
+  - packages/*
+  - scripts/*
+
+allowBuilds:
+  '@openuidev/lang-core': false
+  esbuild: true
+  protobufjs: true
+
+peerDependencyRules:
+  allowedVersions:
+    zustand: '5'
+
+overrides:
+  '@assistant-ui/core': '0.2.22'
+  '@assistant-ui/react': '0.14.27'
+  '@assistant-ui/store': '0.2.21'
+  '@assistant-ui/tap': '0.9.5'
+  zustand: '^5.0.14'

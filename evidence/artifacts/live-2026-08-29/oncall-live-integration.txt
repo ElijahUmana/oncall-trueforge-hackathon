@@ -1,0 +1,9 @@
+$ vitest run --project integration
+
+ RUN  v4.1.11 /Users/elijahumana/Desktop/57t6/oncall-trueforge-hackathon
+
+
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+   Start at  13:00:25
+   Duration  1.66s (transform 51ms, setup 0ms, import 157ms, tests 1.43s, environment 0ms)

@@ -1,0 +1,15 @@
+{
+  "id": "INC-4821",
+  "service": "checkout-svc",
+  "severity": "high",
+  "summary": "Checkout p99 latency and timeout rate exceed the paging threshold",
+  "started_at": "2026-08-29T14:32:00.000Z",
+  "alerted_at": "2026-08-29T14:35:00.000Z",
+  "status": "triggered",
+  "symptoms": {
+    "baseline_p99_ms": 80,
+    "peak_p99_ms": 6813.7,
+    "baseline_error_rate_pct": 0.1,
+    "peak_error_rate_pct": 12
+  }
+}

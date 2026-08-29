@@ -1,0 +1,10 @@
+2026-08-29T14:29:00.000Z INFO request_id=req-100 route=/checkout/complete status=200 duration_ms=72 cart_items=8 db_round_trips=1
+2026-08-29T14:30:02.000Z INFO deploy_id=9921 commit=b9c9167e17ed9e5a1159edcadedf1e5349550dbc event=deployment_completed
+2026-08-29T14:31:00.000Z INFO request_id=req-101 route=/checkout/complete status=200 duration_ms=94 cart_items=31 db_round_trips=31
+2026-08-29T14:32:00.000Z WARN request_id=req-102 route=/checkout/complete duration_ms=5800 cart_items=146 db_round_trips=146 message="checkout approaching 6000ms deadline"
+2026-08-29T14:32:01.000Z ERROR request_id=req-103 route=/checkout/complete status=503 duration_ms=6814 error="CheckoutDeadlineExceeded: checkout exceeded 6.000s deadline after 6.814s" cart_items=200 db_round_trips=200
+2026-08-29T14:32:04.000Z ERROR request_id=req-104 route=/checkout/complete status=503 duration_ms=6310 error="CheckoutDeadlineExceeded: checkout exceeded 6.000s deadline after 6.310s" cart_items=200 db_round_trips=200
+2026-08-29T14:32:09.000Z ERROR request_id=req-105 route=/checkout/complete status=503 duration_ms=6200 error="CheckoutDeadlineExceeded: checkout exceeded 6.000s deadline after 6.200s" cart_items=200 db_round_trips=200
+2026-08-29T14:33:02.000Z INFO request_id=req-106 route=/checkout/complete status=200 duration_ms=121 cart_items=27 db_round_trips=27
+2026-08-29T14:34:01.000Z ERROR request_id=req-107 route=/checkout/complete status=503 duration_ms=6104 error="CheckoutDeadlineExceeded: checkout exceeded 6.000s deadline after 6.104s" cart_items=200 db_round_trips=200
+2026-08-29T14:35:00.000Z WARN incident_id=INC-4821 event=alert_triggered p99_ms=6813.7 error_rate_pct=12

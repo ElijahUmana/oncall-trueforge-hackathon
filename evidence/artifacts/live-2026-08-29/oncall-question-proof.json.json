@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T20:22:21.934Z",
+  "surface": "ask-user-questions",
+  "check": "live-question-response",
+  "source": "../../../../../tmp/oncall-question-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-question-proof.json",
+  "sha256": "121f931aa29d9ddfd6d620545fa357a70b0d06e1c3a199de589ae3e856226ec8",
+  "bytes": 373
+}

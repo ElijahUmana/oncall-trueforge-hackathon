@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17kbsgnvab1wz11kgm4d2j1",
+  "sandbox_created": true,
+  "code_mode_marker_observed": true,
+  "command_exit_code": 0,
+  "direct_metrics_call_observed": false,
+  "turn_status": "done",
+  "event_types": [
+    "turn.created",
+    "mcp.initialize",
+    "model.message",
+    "model.message.delta",
+    "tool.response",
+    "sandbox.created",
+    "turn.done"
+  ]
+}
