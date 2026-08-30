@@ -81,6 +81,10 @@ describe('external action tools', () => {
       expect(JSON.parse(postInit.body)).toEqual({
         channel: 'C0123456789',
         text: 'Incident INC-4821 mitigated',
+        unfurl_links: false,
+        unfurl_media: false,
+        username: 'ONCALL',
+        icon_emoji: ':rotating_light:',
       });
       expect(result.structuredContent).toEqual(
         expect.objectContaining({
@@ -93,6 +97,114 @@ describe('external action tools', () => {
         }),
       );
       expect(JSON.stringify(result)).not.toContain('fixture-bot-auth');
+    } finally {
+      await close();
+    }
+  });
+
+  it('renders validated ONCALL Block Kit and preserves threaded delivery', async () => {
+    vi.stubEnv('SLACK_BOT_TOKEN', 'fixture-bot-auth');
+    vi.stubEnv('SLACK_CHANNEL_ID', 'C0123456789');
+    const provider = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          channel: 'C0123456789',
+          ts: '1725000001.123456',
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+          permalink:
+            'https://example.slack.com/archives/C0123456789/p1725000001123456',
+        }),
+      );
+    vi.stubGlobal('fetch', provider);
+    const store = new ScenarioStore();
+    const { client, close } = await connectedClient(store);
+
+    try {
+      const result = await client.callTool({
+        name: 'slack_post_message',
+        arguments: {
+          incident_id: 'INC-4821',
+          channel: '#oncall-demo',
+          text: 'INC-4821 resolved. Error rate recovered from 12% to 0%.',
+          actor: 'integration-test',
+          presentation: {
+            delivery: 'preview',
+            severity: 'SEV-1',
+            status: 'resolved',
+            service: 'checkout-svc',
+            deploy_id: '9921',
+            commit_sha: 'b9c9167e17ed9e5a1159edcadedf1e5349550dbc',
+            root_cause: 'Serial <per-item> writes caused p99 latency & 503s.',
+            recovery: 'Reverted deploy 9921 and verified remote SHA.',
+            permanent_fix: 'PR #1 remains open and unmerged.',
+            pre_evidence: {
+              requests: 25,
+              errors: 3,
+              error_rate: 0.12,
+              p99_ms: 6946.5,
+              health: 'degraded',
+            },
+            post_evidence: {
+              requests: 25,
+              errors: 0,
+              error_rate: 0,
+              p99_ms: 122.4,
+              health: 'healthy',
+            },
+            links: {
+              github: 'https://github.com/example/oncall',
+              linear: 'https://linear.app/example/issue/ELI-6',
+              operator: 'https://operator.example.test/incidents/INC-4821',
+            },
+            thread_ts: '1725000000.123456',
+          },
+        },
+      });
+      expect(result.isError).not.toBe(true);
+      const [, postInit] = provider.mock.calls[0] ?? [];
+      if (typeof postInit?.body !== 'string') {
+        throw new Error('Expected Slack bot request body to be a JSON string');
+      }
+      const parsedBody: unknown = JSON.parse(postInit.body);
+      if (
+        parsedBody === null ||
+        typeof parsedBody !== 'object' ||
+        Array.isArray(parsedBody)
+      ) {
+        throw new Error('Expected Slack bot request body to be an object');
+      }
+      const body = parsedBody as Record<string, unknown>;
+      expect(body).toMatchObject({
+        channel: 'C0123456789',
+        text: 'INC-4821 resolved. Error rate recovered from 12% to 0%.',
+        unfurl_links: false,
+        unfurl_media: false,
+        username: 'ONCALL',
+        icon_emoji: ':rotating_light:',
+        thread_ts: '1725000000.123456',
+      });
+      const blocks = body.blocks;
+      if (!Array.isArray(blocks)) {
+        throw new Error('Expected Slack bot request body to contain blocks');
+      }
+      const serializedBlocks = JSON.stringify(blocks);
+      expect(serializedBlocks).toContain(
+        'PREVIEW · SEV-1 · INC-4821 · RESOLVED',
+      );
+      expect(serializedBlocks).toContain(
+        'Serial &lt;per-item&gt; writes caused p99 latency &amp; 503s.',
+      );
+      expect(serializedBlocks).toContain('Production recovered');
+      expect(serializedBlocks).toContain('Permanent guard under review');
+      expect(serializedBlocks).toContain('PR #1 remains open and unmerged.');
+      expect(serializedBlocks).toContain('"type":"actions"');
+      expect(serializedBlocks).toContain('"type":"context"');
     } finally {
       await close();
     }
@@ -230,6 +342,8 @@ describe('external action tools', () => {
       expect(JSON.parse(init.body)).toEqual({
         channel: '#oncall-demo',
         text: 'Incident INC-4821 mitigated',
+        unfurl_links: false,
+        unfurl_media: false,
       });
       expect(store.listAudit('INC-4821').events).toContainEqual(
         expect.objectContaining({

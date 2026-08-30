@@ -8,7 +8,7 @@ Deterministic checkout incident evidence and stateful incident actions exposed t
 pnpm --filter @oncall/checkout-svc-sim start
 ```
 
-The Streamable HTTP endpoint is `http://127.0.0.1:8941/mcp`; health is `http://127.0.0.1:8941/health`. Override the port with `PORT`.
+The Streamable HTTP endpoint is `http://127.0.0.1:8941/mcp`; health is `http://127.0.0.1:8941/health`. Override the port with `PORT`. Mutable incident, audit, and remediation state is stored in SQLite at `.oncall/checkout-svc-sim.sqlite`; override it with `CHECKOUT_MCP_STATE_PATH`. The ignored database uses WAL mode and FULL synchronous commits so acknowledged/resolved status and domain audit survive process restarts.
 
 For stdio:
 
@@ -56,7 +56,7 @@ SLACK_BOT_TOKEN=xoxb-...
 SLACK_CHANNEL_ID=C...
 ```
 
-It uses `chat.postMessage`, returns the channel ID and message timestamp, and attempts `chat.getPermalink`. A permalink lookup failure is returned as `permalink_error` without falsely failing or repeating an already delivered message. When no bot token is configured, the tool can use an incoming webhook:
+It uses `chat.postMessage`, returns the channel ID and message timestamp, and attempts `chat.getPermalink`. The tool accepts a validated ONCALL incident presentation that renders Block Kit sections, before/after metrics, verified remediation, provider links, preview labeling, and threaded updates while retaining accessible fallback text. Bot delivery uses the ONCALL display identity through Slack's `chat:write.customize` scope without renaming the underlying shared app. A permalink lookup failure is returned as `permalink_error` without falsely failing or repeating an already delivered message. When no bot token is configured, the tool can use an incoming webhook:
 
 ```bash
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
@@ -70,7 +70,7 @@ DAYTONA_SNAPSHOT=trueforge-build-...
 GITHUB_DEMO_TOKEN=...
 ```
 
-The GitHub token is supplied only to the Daytona `codeRun` environment and passed to `/bin/bash` through `GIT_ASKPASS`; it is never embedded in Python or shell source or returned. `DAYTONA_SNAPSHOT` must name the verified TrueForge-built snapshot because Daytona's generic `executeCommand` images have incompatible toolbox shell paths in this account. Missing credentials/configuration, alternate repository/branch, clone/head mismatch, incident reproduction failure, test failure, push failure, remote-SHA mismatch, or recovery verification failure returns an MCP tool error and does not append a rollback-success audit record. After a verified push, sandbox stop failure is returned as `sandbox_stopped: false` with `cleanup_error` so callers do not retry an already completed mutation.
+The GitHub token is supplied only to the Daytona push-phase `codeRun` environment and passed to `/bin/bash` through `GIT_ASKPASS`; it is never embedded in Python or shell source or returned. `DAYTONA_SNAPSHOT` must name the verified TrueForge-built snapshot because Daytona's generic `executeCommand` images have incompatible toolbox shell paths in this account. Rollback uses a durable operation ID and three phases: prepare a deterministic revert and verify pre/post behavior without pushing, atomically persist that revert SHA and evidence, then push and verify the remote SHA. A restart reconciles remote `main` against the original deploy and persisted revert instead of repeating an already applied mutation. Missing credentials/configuration, alternate repository/branch, clone/head mismatch, incident reproduction failure, test failure, push failure, remote-SHA mismatch, or recovery verification failure returns an MCP tool error. Pre-push failures are durably retryable; remote divergence is a non-retryable conflict; verified mutation and its completion audit commit together. After a verified push, sandbox stop failure is returned and audited separately so callers do not retry an already completed mutation.
 
 Jira Cloud requires:
 

@@ -2,10 +2,13 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 
 import {
+  DurableRemediationCoordinator,
+  type DurableRollbackExecutor,
+} from './durable-remediation.js';
+import {
   ROLLBACK_BRANCH,
   ROLLBACK_REPOSITORY_URL,
   rollbackExecutor,
-  type RollbackExecutor,
 } from './rollback-executor.js';
 import { scenarioStore, type ScenarioStore } from './scenario.js';
 
@@ -61,6 +64,42 @@ const rollbackEvidenceSchema = z.object({
   p99_ms: z.number().nonnegative(),
   health: z.string(),
 });
+const slackMetricSnapshotSchema = z.object({
+  requests: z.number().int().nonnegative(),
+  errors: z.number().int().nonnegative(),
+  error_rate: z.number().min(0).max(1),
+  p99_ms: z.number().nonnegative(),
+  health: z.enum(['degraded', 'healthy']),
+});
+const httpsUrl = z
+  .string()
+  .url()
+  .refine(value => new URL(value).protocol === 'https:', 'URL must use HTTPS');
+const slackPresentationSchema = z.object({
+  delivery: z.enum(['preview', 'final']),
+  severity: z.enum(['SEV-1', 'SEV-2', 'SEV-3']),
+  status: z.enum(['investigating', 'mitigated', 'resolved']),
+  service: serviceName,
+  deploy_id: z.string().trim().min(1).max(100),
+  commit_sha: z.string().regex(/^[0-9a-f]{7,40}$/),
+  root_cause: z.string().trim().min(1).max(1200),
+  recovery: z.string().trim().min(1).max(600),
+  permanent_fix: z.string().trim().min(1).max(600),
+  pre_evidence: slackMetricSnapshotSchema,
+  post_evidence: slackMetricSnapshotSchema,
+  links: z
+    .object({
+      github: httpsUrl.optional(),
+      linear: httpsUrl.optional(),
+      operator: httpsUrl.optional(),
+    })
+    .optional(),
+  thread_ts: z
+    .string()
+    .regex(/^[0-9]+\.[0-9]+$/)
+    .optional(),
+});
+type SlackPresentation = z.infer<typeof slackPresentationSchema>;
 
 function toolResult<T extends Record<string, unknown>>(structuredContent: T) {
   return {
@@ -145,9 +184,106 @@ function requireSlackString(
   return value;
 }
 
+function escapeSlackText(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function buildSlackBlocks(
+  incidentIdValue: string,
+  presentation: SlackPresentation,
+): Array<Record<string, unknown>> {
+  const marker = presentation.delivery === 'preview' ? 'PREVIEW · ' : '';
+  const rootCause = escapeSlackText(presentation.root_cause);
+  const recovery = escapeSlackText(presentation.recovery);
+  const permanentFix = escapeSlackText(presentation.permanent_fix);
+  const pre = presentation.pre_evidence;
+  const post = presentation.post_evidence;
+  const blocks: Array<Record<string, unknown>> = [
+    {
+      type: 'header',
+      text: {
+        type: 'plain_text',
+        text: `${marker}${presentation.severity} · ${incidentIdValue} · ${presentation.status.toUpperCase()}`,
+        emoji: true,
+      },
+    },
+    {
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Service*\n${escapeSlackText(presentation.service)}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Suspect deploy*\n${escapeSlackText(presentation.deploy_id)} · \`${presentation.commit_sha.slice(0, 7)}\``,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Before*\n${pre.errors}/${pre.requests} errors · ${(pre.error_rate * 100).toFixed(0)}% · p99 ${pre.p99_ms.toFixed(1)} ms`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*After*\n${post.errors}/${post.requests} errors · ${(post.error_rate * 100).toFixed(0)}% · p99 ${post.p99_ms.toFixed(1)} ms`,
+        },
+      ],
+    },
+    { type: 'divider' },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*Root cause*\n${rootCause}` },
+    },
+    {
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Production recovered*\n${recovery}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Permanent guard under review*\n${permanentFix}`,
+        },
+      ],
+    },
+  ];
+  const links = presentation.links;
+  if (links !== undefined) {
+    const elements = Object.entries(links).map(([name, url]) => ({
+      type: 'button',
+      text: {
+        type: 'plain_text',
+        text:
+          name === 'github'
+            ? 'View GitHub'
+            : name === 'linear'
+              ? 'Open Linear follow-up'
+              : 'Open operator console',
+        emoji: true,
+      },
+      url,
+      action_id: `oncall_${name}`,
+    }));
+    if (elements.length > 0) blocks.push({ type: 'actions', elements });
+  }
+  blocks.push({
+    type: 'context',
+    elements: [
+      {
+        type: 'mrkdwn',
+        text: `${presentation.delivery === 'preview' ? 'Non-final delivery preview · ' : ''}ONCALL by TrueForge · provider-verified incident evidence`,
+      },
+    ],
+  });
+  return blocks;
+}
+
 export function buildServer(
   store: ScenarioStore = scenarioStore,
-  executor: RollbackExecutor = rollbackExecutor,
+  executor: DurableRollbackExecutor = rollbackExecutor,
 ): McpServer {
   const server = new McpServer(
     { name: 'checkout-svc-sim', version: '1.0.0' },
@@ -425,39 +561,48 @@ export function buildServer(
       requested_by,
       reason,
     }) => {
-      const incident = store.getIncident(incident_id);
-      if (incident.status !== 'acknowledged') {
-        throw new Error(
-          `Rollback execution requires acknowledged incident; ${incident_id} is ${incident.status}`,
-        );
-      }
       const deploy = store.getDeploy(deploy_id);
-      const execution = await executor.execute({
+      const coordinator = new DurableRemediationCoordinator(
+        store.durableState(),
+        executor,
+      );
+      const result = await coordinator.execute({
+        incidentId: incident_id,
         deployId: deploy.id,
         deployCommit: deploy.commit,
         repositoryUrl: repository_url,
         branch,
+        requestedBy: requested_by,
+        reason,
       });
-      const auditEvent = store.recordExternalAction(
-        'remediation.rollback_executed',
-        requested_by,
-        {
-          deploy_id,
-          repository_url: execution.repository_url,
-          branch,
-          reason,
-          sandbox_id: execution.sandbox_id,
-          revert_sha: execution.revert_sha,
-          remote_sha: execution.remote_sha,
-          pre_evidence: execution.pre_evidence,
-          post_evidence: execution.post_evidence,
-        },
-      );
+      const operation = result.operation;
+      if (
+        operation.expected_revert_sha === undefined ||
+        operation.remote_sha === undefined ||
+        operation.pre_evidence === undefined ||
+        operation.post_evidence === undefined ||
+        operation.sandbox_id === undefined
+      ) {
+        throw new Error(
+          `Rollback ${operation.operation_id} completed without durable execution evidence`,
+        );
+      }
       return toolResult({
         incident_id,
         deploy_id,
-        ...execution,
-        audit_event: auditEvent,
+        repository_url: operation.repository_url,
+        branch: operation.branch,
+        sandbox_id: operation.sandbox_id,
+        pre_evidence: operation.pre_evidence,
+        revert_sha: operation.expected_revert_sha,
+        post_evidence: operation.post_evidence,
+        remote_sha: operation.remote_sha,
+        tests_passed: true as const,
+        sandbox_stopped: operation.status === 'applied',
+        ...(operation.cleanup_error !== undefined && {
+          cleanup_error: operation.cleanup_error,
+        }),
+        audit_event: result.auditEvent,
       });
     },
   );
@@ -490,11 +635,12 @@ export function buildServer(
     'slack_post_message',
     {
       description:
-        'Post a real Slack message using SLACK_BOT_TOKEN and SLACK_CHANNEL_ID, or fall back to SLACK_WEBHOOK_URL when bot credentials are absent.',
+        'Post an ONCALL Slack incident update using a validated presentation contract, with accessible fallback text and optional threading.',
       inputSchema: z.object({
         incident_id: incidentId,
         channel: z.string().trim().min(1).max(100),
         text: z.string().trim().min(1).max(4000),
+        presentation: slackPresentationSchema.optional(),
         actor,
       }),
       outputSchema: z.object({
@@ -514,8 +660,21 @@ export function buildServer(
         openWorldHint: true,
       },
     },
-    async ({ incident_id, channel, text, actor: postedBy }) => {
+    async ({ incident_id, channel, text, presentation, actor: postedBy }) => {
       store.getIncident(incident_id);
+      const blocks =
+        presentation === undefined
+          ? undefined
+          : buildSlackBlocks(incident_id, presentation);
+      const messagePayload = {
+        text,
+        unfurl_links: false,
+        unfurl_media: false,
+        ...(blocks !== undefined && { blocks }),
+        ...(presentation?.thread_ts !== undefined && {
+          thread_ts: presentation.thread_ts,
+        }),
+      };
       const botToken = process.env.SLACK_BOT_TOKEN;
       if (botToken !== undefined && botToken.length > 0) {
         const channelId = process.env.SLACK_CHANNEL_ID;
@@ -532,7 +691,12 @@ export function buildServer(
               authorization: `Bearer ${botToken}`,
               'content-type': 'application/json; charset=utf-8',
             },
-            body: JSON.stringify({ channel: channelId, text }),
+            body: JSON.stringify({
+              channel: channelId,
+              ...messagePayload,
+              username: 'ONCALL',
+              icon_emoji: ':rotating_light:',
+            }),
           },
           'Slack chat.postMessage',
         );
@@ -614,7 +778,7 @@ export function buildServer(
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ channel, text }),
+          body: JSON.stringify({ channel, ...messagePayload }),
         },
         'Slack webhook delivery',
       );

@@ -90,6 +90,7 @@ async function startHttpClient(
       env: {
         ...process.env,
         PORT: String(port),
+        CHECKOUT_MCP_STATE_PATH: ':memory:',
         SLACK_BOT_TOKEN: '',
         SLACK_CHANNEL_ID: '',
         SLACK_WEBHOOK_URL: '',
@@ -226,8 +227,7 @@ describe('MCP transports', () => {
       arguments: {
         incident_id: 'INC-4821',
         deploy_id: '9921',
-        repository_url:
-          'https://github.com/ElijahUmana/oncall-demo-svc.git',
+        repository_url: 'https://github.com/ElijahUmana/oncall-demo-svc.git',
         branch: 'main',
         requested_by: 'integration-test',
         reason: 'Deploy immediately preceded per-item database round trips',
@@ -248,6 +248,14 @@ describe('MCP transports', () => {
         expect.objectContaining({
           sequence: 1,
           action: 'pagerduty.acknowledged',
+        }),
+        expect.objectContaining({
+          sequence: 2,
+          action: 'remediation.rollback_reserved',
+        }),
+        expect.objectContaining({
+          sequence: 3,
+          action: 'remediation.rollback_failed_pre_push',
         }),
       ],
     });
@@ -375,6 +383,7 @@ describe('MCP transports', () => {
       cwd: packageDirectory,
       env: {
         ...process.env,
+        CHECKOUT_MCP_STATE_PATH: ':memory:',
         SLACK_BOT_TOKEN: '',
         SLACK_CHANNEL_ID: '',
         SLACK_WEBHOOK_URL: '',

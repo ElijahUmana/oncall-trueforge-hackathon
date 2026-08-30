@@ -16,7 +16,31 @@ const executorSource = await readFile(
   'utf8',
 );
 
-const mcpExecutesRollback = serverSource.includes('await executor.execute({');
+const coordinatorSource = await readFile(
+  new URL(
+    '../mcp-servers/checkout-svc-sim/src/durable-remediation.ts',
+    import.meta.url,
+  ),
+  'utf8',
+);
+
+const mcpExecutesRollback =
+  serverSource.includes('new DurableRemediationCoordinator(') &&
+  serverSource.includes('await coordinator.execute({');
+const preparedCheckpoint = coordinatorSource.indexOf(
+  'this.state.markRollbackPrepared({',
+);
+const externalApply = coordinatorSource.indexOf(
+  'await this.executor.applyPrepared(',
+);
+const persistsBeforePush =
+  preparedCheckpoint >= 0 &&
+  externalApply >= 0 &&
+  preparedCheckpoint < externalApply &&
+  executorSource.includes('async prepare(') &&
+  executorSource.includes('async applyPrepared(') &&
+  !executorSource.includes('async execute(');
+const directExecutorCall = serverSource.includes('await executor.execute({');
 const agentClaimsIntentOnly = agentSource.includes(
   'The MCP call records approved intent only; it never executes git.',
 );
@@ -40,6 +64,12 @@ const agentSuppliesRepository =
   agentSource.includes(expectedRepositoryUrl);
 const agentSuppliesBranch =
   agentSource.includes('branch') && agentSource.includes('main');
+
+if (mcpExecutesRollback && (!persistsBeforePush || directExecutorCall)) {
+  throw new Error(
+    'Durable remediation mismatch: rollback must persist prepared evidence before applyPrepared pushes, and the handler must not call the executor directly.',
+  );
+}
 
 if (
   mcpExecutesRollback &&

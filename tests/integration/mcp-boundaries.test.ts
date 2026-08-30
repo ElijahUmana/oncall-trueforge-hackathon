@@ -1,5 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
   Client,
@@ -13,6 +15,7 @@ const tsxCli = path.join(packageDirectory, 'node_modules/tsx/dist/cli.mjs');
 const mainSource = path.join(packageDirectory, 'src/main.ts');
 const children = new Set<ChildProcess>();
 const clients = new Set<Client>();
+const statePaths = new Set<string>();
 
 async function availablePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -33,6 +36,8 @@ async function availablePort(): Promise<number> {
 
 async function startConnector(requestedPort?: number) {
   const port = requestedPort ?? (await availablePort());
+  const statePath = path.join(tmpdir(), `oncall-mcp-boundary-${port}.sqlite`);
+  statePaths.add(statePath);
   const child = spawn(process.execPath, [tsxCli, mainSource], {
     cwd: packageDirectory,
     env: {
@@ -42,6 +47,7 @@ async function startConnector(requestedPort?: number) {
       JIRA_EMAIL: '',
       JIRA_PROJECT_KEY: '',
       PORT: String(port),
+      CHECKOUT_MCP_STATE_PATH: statePath,
       SLACK_WEBHOOK_URL: '',
     },
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -110,6 +116,14 @@ afterEach(async () => {
       await new Promise<void>(resolve => child.once('exit', () => resolve()));
     }),
   );
+  await Promise.all(
+    [...statePaths].flatMap(statePath => {
+      statePaths.delete(statePath);
+      return [statePath, `${statePath}-shm`, `${statePath}-wal`].map(file =>
+        rm(file, { force: true }),
+      );
+    }),
+  );
 });
 
 describe('MCP connector adversarial boundaries', () => {
@@ -153,7 +167,7 @@ describe('MCP connector adversarial boundaries', () => {
     }
   });
 
-  test('does not misrepresent in-memory connector state as restart persistence', async () => {
+  test('persists incident state and audit across connector restart', async () => {
     const first = await startConnector();
     await first.client.callTool({
       name: 'pagerduty_acknowledge',
@@ -168,7 +182,14 @@ describe('MCP connector adversarial boundaries', () => {
     });
     expect(incident.structuredContent).toBeDefined();
     expect(JSON.stringify(incident.structuredContent)).toContain(
-      '"status":"triggered"',
+      '"status":"acknowledged"',
+    );
+    const audit = await second.client.callTool({
+      name: 'audit_list',
+      arguments: { incident_id: 'INC-4821', after_sequence: 0 },
+    });
+    expect(JSON.stringify(audit.structuredContent)).toContain(
+      '"action":"pagerduty.acknowledged"',
     );
   });
 });

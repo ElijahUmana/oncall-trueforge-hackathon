@@ -2,6 +2,11 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  DurableStateStore,
+  type RollbackReservationInput,
+} from './durable-state.js';
+
 export type IncidentStatus = 'triggered' | 'acknowledged' | 'resolved';
 
 export interface AuditEvent {
@@ -70,10 +75,9 @@ export class ScenarioStore {
   readonly #metricsSeed: MetricsSeed;
   readonly #logLines: string[];
   readonly #sourceFiles: Map<string, string>;
-  #incident: IncidentSeed;
-  #audit: AuditEvent[] = [];
+  readonly #state: DurableStateStore;
 
-  constructor(dataDirectory = defaultDataDirectory) {
+  constructor(dataDirectory = defaultDataDirectory, statePath = ':memory:') {
     this.#incidentSeed = readJson<IncidentSeed>(
       join(dataDirectory, 'incidents/INC-4821.json'),
     );
@@ -96,35 +100,27 @@ export class ScenarioStore {
         readFileSync(join(dataDirectory, 'code/orders.py'), 'utf8'),
       ],
     ]);
-    this.#incident = clone(this.#incidentSeed);
+    this.#state = new DurableStateStore(statePath);
+    this.#state.initializeIncident(this.#incidentSeed);
+  }
+
+  close(): void {
+    this.#state.close();
   }
 
   reset(): void {
-    this.#incident = clone(this.#incidentSeed);
-    this.#audit = [];
+    this.#state.reset(this.#incidentSeed);
   }
 
   getIncident(incidentId: string): IncidentSeed {
-    this.#assertIncident(incidentId);
-    return clone(this.#incident);
+    return this.#state.getIncident(incidentId);
   }
 
   acknowledge(
     incidentId: string,
     actor: string,
   ): { incident: IncidentSeed; audit_event: AuditEvent } {
-    this.#assertIncident(incidentId);
-    if (this.#incident.status !== 'triggered') {
-      throw new Error(
-        `Incident ${incidentId} cannot transition from ${this.#incident.status} to acknowledged`,
-      );
-    }
-    this.#incident.status = 'acknowledged';
-    const event = this.#record('pagerduty.acknowledged', actor, incidentId, {
-      previous_status: 'triggered',
-      status: 'acknowledged',
-    });
-    return { incident: clone(this.#incident), audit_event: event };
+    return this.#state.acknowledge(incidentId, actor);
   }
 
   resolve(
@@ -132,19 +128,7 @@ export class ScenarioStore {
     actor: string,
     resolution: string,
   ): { incident: IncidentSeed; audit_event: AuditEvent } {
-    this.#assertIncident(incidentId);
-    if (this.#incident.status !== 'acknowledged') {
-      throw new Error(
-        `Incident ${incidentId} cannot transition from ${this.#incident.status} to resolved`,
-      );
-    }
-    this.#incident.status = 'resolved';
-    const event = this.#record('pagerduty.resolved', actor, incidentId, {
-      previous_status: 'acknowledged',
-      status: 'resolved',
-      resolution,
-    });
-    return { incident: clone(this.#incident), audit_event: event };
+    return this.#state.resolve(incidentId, actor, resolution);
   }
 
   queryLogs(
@@ -272,12 +256,9 @@ export class ScenarioStore {
     incidentId: string,
     afterSequence = 0,
   ): { incident_id: string; events: AuditEvent[] } {
-    this.#assertIncident(incidentId);
     return {
       incident_id: incidentId,
-      events: clone(
-        this.#audit.filter(event => event.sequence > afterSequence),
-      ),
+      events: this.#state.listAudit(incidentId, afterSequence),
     };
   }
 
@@ -286,45 +267,37 @@ export class ScenarioStore {
     actor: string,
     details: Record<string, unknown>,
   ): AuditEvent {
-    return this.#record(action, actor, this.#incident.id, details);
+    return this.#state.recordExternalAction(
+      this.#incidentSeed.id,
+      action,
+      actor,
+      details,
+    );
   }
 
-  #assertIncident(incidentId: string): void {
-    if (incidentId !== this.#incident.id) {
-      throw new Error(`Unknown incident: ${incidentId}`);
-    }
+  reserveRollback(input: RollbackReservationInput) {
+    return this.#state.reserveRollback(input);
+  }
+
+  durableState(): DurableStateStore {
+    return this.#state;
   }
 
   #assertService(service: string): void {
-    if (service !== this.#incident.service) {
+    if (service !== this.#incidentSeed.service) {
       throw new Error(`Unknown service: ${service}`);
     }
   }
-
-  #record(
-    action: string,
-    actor: string,
-    incidentId: string,
-    details: Record<string, unknown>,
-    timestamp = this.#nextAuditTimestamp(),
-  ): AuditEvent {
-    const event: AuditEvent = {
-      sequence: this.#audit.length + 1,
-      timestamp,
-      action,
-      actor,
-      incident_id: incidentId,
-      details,
-    };
-    this.#audit.push(event);
-    return clone(event);
-  }
-
-  #nextAuditTimestamp(): string {
-    return new Date(
-      Date.parse('2026-08-29T14:35:00.000Z') + (this.#audit.length + 1) * 1000,
-    ).toISOString();
-  }
 }
 
-export const scenarioStore = new ScenarioStore();
+const packageDirectory = existsSync(sourceDataDirectory)
+  ? resolve(moduleDirectory, '..')
+  : resolve(moduleDirectory, '../..');
+const defaultStatePath =
+  process.env.CHECKOUT_MCP_STATE_PATH ??
+  resolve(packageDirectory, '.oncall/checkout-svc-sim.sqlite');
+
+export const scenarioStore = new ScenarioStore(
+  defaultDataDirectory,
+  defaultStatePath,
+);
