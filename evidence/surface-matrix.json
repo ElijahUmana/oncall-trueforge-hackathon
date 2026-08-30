@@ -46,9 +46,10 @@
       "name": "Tool approval gates",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/create-agent/overview.mdx",
       "status": "verified",
-      "checks": ["live-denial"],
+      "checks": ["live-denial", "atomic-full-incident-flow"],
       "artifacts": [
-        "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json"
+        "evidence/artifacts/live-2026-08-29/oncall-denial-proof.json",
+        "evidence/artifacts/live-2026-08-29/oncall-atomic-full-flow-proof.json"
       ]
     },
     {
@@ -106,9 +107,9 @@
       "name": "Saved reusable agent",
       "officialSource": "https://github.com/truefoundry/trueforge/blob/main/docs/agent-library.mdx",
       "status": "verified",
-      "checks": ["live-saved-agent"],
+      "checks": ["live-saved-agent-current"],
       "artifacts": [
-        "evidence/artifacts/live-2026-08-29/oncall-saved-agent-proof.json"
+        "evidence/artifacts/live-2026-08-29/oncall-saved-agent-current-proof.json"
       ]
     },
     {

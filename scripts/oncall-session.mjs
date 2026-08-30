@@ -70,6 +70,11 @@ async function streamTurn(sessionId, input) {
       process.stdout.write(`${summarizeEvent(event)}\n`);
     },
   );
+  if (turnId === undefined || finalState === undefined) {
+    throw new Error(
+      `Turn stream for session ${sessionId} completed without terminal turn state`,
+    );
+  }
   const state = await loadState();
   await saveState({
     ...state,

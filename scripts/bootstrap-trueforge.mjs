@@ -6,6 +6,10 @@ import process from 'node:process';
 import { promisify } from 'node:util';
 
 import {
+  TrueForgeClient,
+  findAgentByName,
+} from '../agent/trueforge-client.mjs';
+import {
   AGENT_NAME,
   DEFAULT_MODEL_NAME,
   LINEAR_MCP_SERVER_NAME,
@@ -22,6 +26,11 @@ const baseUrl = new URL(
   process.env.TRUEFORGE_BASE_URL ?? 'http://127.0.0.1:8790',
 );
 const token = process.env.TRUEFORGE_TOKEN;
+const trueForgeClient = new TrueForgeClient({
+  baseUrl: baseUrl.href,
+  ...(token ? { token } : {}),
+  timeoutMs: 30_000,
+});
 const modelName = process.env.TRUEFORGE_MODEL ?? DEFAULT_MODEL_NAME;
 const skillRepositoryUrl = process.env.ONCALL_SKILL_REPOSITORY_URL;
 const skillRepositoryRef = process.env.ONCALL_SKILL_REPOSITORY_REF;
@@ -286,9 +295,7 @@ async function upsertSkill() {
 /** @param {'stable' | 'modern'} compactionStyle */
 async function upsertAgent(compactionStyle) {
   if (!modelName) throw new Error('TRUEFORGE_MODEL is required');
-  const list = await requestJson('GET', '/api/v1/agents', undefined, [200]);
-  const agents = /** @type {JsonRecord[]} */ (list.data ?? []);
-  const existing = agents.find(agent => agent.name === AGENT_NAME);
+  const existing = await findAgentByName(trueForgeClient, AGENT_NAME);
   const manifest = buildAgentManifest({ modelName, compactionStyle });
   if (existing === undefined) {
     return requestJson(

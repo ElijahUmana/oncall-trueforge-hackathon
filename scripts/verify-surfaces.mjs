@@ -74,6 +74,59 @@ for (const surface of matrix.surfaces) {
         const artifactContents = await readFile(artifactPath);
         if (artifactContents.length === 0)
           errors.push(`${surface.id}: empty artifact ${artifact}`);
+        if (surface.id === 'saved-agent') {
+          try {
+            const proof = JSON.parse(artifactContents.toString('utf8'));
+            /** @type {unknown[]} */
+            const connectors = Array.isArray(proof.mcp_servers)
+              ? proof.mcp_servers
+              : [];
+            const connectorNames = connectors
+              .filter(
+                /**
+                 * @param {unknown} server
+                 * @returns {server is { name: string }}
+                 */
+                server =>
+                  server !== null &&
+                  typeof server === 'object' &&
+                  'name' in server &&
+                  typeof server.name === 'string',
+              )
+              .map(server => server.name)
+              .sort();
+            if (proof.name !== 'oncall-incident-responder')
+              errors.push(`${surface.id}: proof names the wrong saved agent`);
+            if (proof.model !== 'openai/gpt-5.6-sol')
+              errors.push(`${surface.id}: proof uses a stale model`);
+            if (
+              JSON.stringify(connectorNames) !==
+              JSON.stringify(['checkout-svc-sim', 'linear'])
+            )
+              errors.push(`${surface.id}: proof uses stale connector bindings`);
+            if (
+              !Array.isArray(proof.skills) ||
+              !proof.skills.includes('oncall-runbook')
+            )
+              errors.push(`${surface.id}: proof omits oncall-runbook`);
+            for (const capability of [
+              'sandbox',
+              'dynamic_sub_agents',
+              'generative_ui',
+              'ask_user_questions',
+              'large_tool_response',
+            ]) {
+              if (proof.capabilities?.[capability] !== true)
+                errors.push(
+                  `${surface.id}: proof does not enable ${capability}`,
+                );
+            }
+          } catch (error) {
+            if (error instanceof SyntaxError)
+              errors.push(`${surface.id}: proof is not valid JSON`);
+            else throw error;
+          }
+        }
         const metadataPath = `${artifactPath}.json`;
         const metadataRelativePath = `${artifact}.json`;
         try {
