@@ -1,6 +1,44 @@
 # ONCALL
 
+[![TrueForge](https://img.shields.io/badge/TrueForge-Agent%20Harness-dfff57?style=for-the-badge&labelColor=07100d)](https://github.com/truefoundry/trueforge)
+[![Daytona](https://img.shields.io/badge/Daytona-Isolated%20Recovery-65e6b2?style=for-the-badge&labelColor=07100d)](https://www.daytona.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Operator%20Control-7fa4ff?style=for-the-badge&labelColor=07100d)](https://www.typescriptlang.org/)
+
 > A local-first autonomous incident commander built on TrueForge. It turns a production page into a parallel investigation, evidence-correlated root cause, human-gated remediation, isolated Daytona recovery, and durable operational closeout.
+
+## Technical map
+
+```mermaid
+flowchart LR
+    P[Production telemetry] --> T[TrueForge session]
+    T --> A1[Logs]
+    T --> A2[Metrics]
+    T --> A3[Deploy]
+    T --> A4[Code]
+    A1 --> F[Typed evidence fan-in]
+    A2 --> F
+    A3 --> F
+    A4 --> F
+    F --> Q[Remediation choice]
+    Q --> H[Human rollback approval]
+    H --> D[Daytona recovery]
+    D --> V[Remote verification]
+    V --> C[Slack · Linear · resolution]
+```
+
+| Deep dive | What it proves |
+|---|---|
+| [System architecture](docs/architecture.md) | Component and data-flow boundaries |
+| [TrueForge surface map](docs/trueforge-surfaces.md) | Harness depth across 20 concrete capabilities |
+| [Evidence contracts](docs/evidence-contracts.md) | Typed specialists and correlation gates |
+| [Safety boundaries](docs/safety-boundaries.md) | Choice, approval, mutation, and recovery separation |
+| [Durable remediation](docs/durable-remediation.md) | SQLite state machine and restart reconciliation |
+| [Daytona execution](docs/daytona-execution.md) | Credential-isolated recovery pipeline |
+| [Operator telemetry](docs/operator-telemetry.md) | Event-derived UI and replay trust rules |
+| [Security model](docs/security-model.md) | Credential, input, and external-effect boundaries |
+| [Qodo review impact](docs/qodo-impact.md) | Review findings translated into architecture |
+| [Verification strategy](docs/verification-strategy.md) | Static, automated, live, and responsive proof |
+| [Design decisions](docs/design-decisions.md) | Critical constraints and rejected shortcuts |
 
 ## Production incidents are now the code-review bottleneck
 
