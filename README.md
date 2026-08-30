@@ -158,22 +158,34 @@ Key constraints:
 - A restart compares remote HEAD with the approved deploy and persisted revert; any unrelated SHA becomes a conflict.
 - Errors remain visible; the system does not turn missing evidence into success.
 
-## Repository structure
-
-```text
-agent/                         saved-agent definition and typed contracts
-apps/operator/                 production monitor, incident command UI, Slack action bridge
-mcp-servers/checkout-svc-sim/  Streamable HTTP MCP, durable coordinator, Daytona executor
-skills/oncall-runbook/          immutable evidence-first response procedure
-demo/                          terminal ignition command
-demo-svc/                      reproducible checkout regression target
-scripts/                       bootstrap, SDK session driver, verification utilities
-tests/                         unit, integration, transport, durability, and UI contracts
-evidence/                      machine-readable live execution proofs
-```
-
 ## Why this matters
 
 The difficult part of an incident agent is not generating an RCA paragraph. It is building a system that can gather evidence concurrently, prove its causal chain, stop at the correct boundary, execute one approved change, recover safely after interruption, and leave behind a durable operational record.
 
 ONCALL demonstrates that an agent harness can own real incident work while the human retains final authority.
+
+## Qodo code review: review findings became architecture
+
+[![Qodo reviewed](https://img.shields.io/badge/Qodo-6%20actionable%20findings-634FD1?style=for-the-badge&labelColor=07100d)](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#issuecomment-5465097447)
+
+Qodo was used as an adversarial engineering reviewer on [PR #1 — Build ONCALL on the TrueForge agent harness](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1). I triggered Qodo's agentic review twice as the implementation evolved. The resulting review found **six concrete bugs**—three high-severity reliability/correctness problems, one additional high-severity streaming problem, and two medium-severity integration problems. Those findings drove material changes to ONCALL's persistence, concurrency, recovery, streaming, bootstrap, and authentication architecture.
+
+**Public review evidence**
+
+- [Full Qodo review summary: 6 bugs, 0 rule violations](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#issuecomment-5465097447)
+- [First agentic review request](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#issuecomment-5464811180)
+- [Follow-up agentic review request](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#issuecomment-5465088702)
+- [Qodo review on the exact implementation commit](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#pullrequestreview-5059279230)
+
+| Qodo finding | Risk identified by Qodo | Implemented response |
+|---|---|---|
+| [Rollback audit is non-atomic](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777314) | A Git push could succeed before the audit record existed, leaving an unrecoverable mutation gap. | Split rollback into prepare/apply phases; persist operation intent, expected revert SHA, sandbox ID, and pre/post evidence before push; atomically record terminal state and audit. |
+| [Rollback authorization can race](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777317) | A concurrent resolution could change incident state while rollback was executing. | Added an incident-level remediation reservation, serialized active rollback, and blocked resolution until the operation reaches a terminal state. |
+| [Incident state resets on restart](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777318) | In-memory incident and audit state broke persistent TrueForge session recovery. | Replaced mutable in-memory state with transaction-backed SQLite for incidents, domain audits, rollback operations, attempts, evidence, and cleanup results. |
+| [Truncated SSE looks successful](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777320) | Unexpected EOF could be mistaken for a completed TrueForge turn. | Required an observed terminal `turn.done`, added bounded SSE reconnect/replay from the last sequence ID, suppressed duplicate events, and refused to persist incomplete completion state. |
+| [Agent lookup ignores pagination](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777322) | Repeated bootstrap could create duplicate saved agents when the existing agent was not on page one. | Reused full pagination semantics when discovering the saved agent before create/update. |
+| [Operator omits bearer authentication](https://github.com/ElijahUmana/oncall-trueforge-hackathon/pull/1#discussion_r3887777325) | A protected TrueForge deployment could not be reached safely from the browser. | Added a trusted same-origin proxy that injects the bearer token server-side for API and SSE traffic; no credential enters the browser bundle. |
+
+The largest outcome was the durable remediation state machine introduced in [`cf2ccc9`](https://github.com/ElijahUmana/oncall-trueforge-hackathon/commit/cf2ccc9): rollback is now reserved, prepared, checkpointed, applied, remotely reconciled, and audited across process failure. Client reliability and secure operator authentication landed in [`cbe9696`](https://github.com/ElijahUmana/oncall-trueforge-hackathon/commit/cbe9696) and [`7fc8dfa`](https://github.com/ElijahUmana/oncall-trueforge-hackathon/commit/7fc8dfa). Focused durability, transport, restart, proxy, pagination, and SSE tests preserve the fixes.
+
+[Read the detailed Qodo impact analysis →](docs/qodo-impact.md)
