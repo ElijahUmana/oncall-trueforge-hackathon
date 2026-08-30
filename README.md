@@ -104,80 +104,11 @@ A production alert fires. Before the responder finishes opening their laptop, fo
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## What the demo shows
+## Live demo
 
-### 1. Production telemetry is already moving
+[![Watch the ONCALL demo](https://img.shields.io/badge/WATCH%20THE%20LIVE%20DEMO-Google%20Drive-dfff57?style=for-the-badge&labelColor=07100d)](https://drive.google.com/file/d/1eHff5y28m-QIh7RG_nC9mRs4U8eneXUS/view?usp=sharing)
 
-The demo opens on a dedicated production monitor. Checkout traffic, p99 latency, error rate, topology, and a live ingestion stream move continuously. ONCALL is armed but not yet running.
-
-### 2. One terminal command fires the page
-
-```bash
-./demo/trigger-alert.sh INC-4821
-```
-
-The production monitor crosses its thresholds, displays the incident, and holds the red detection state long enough to read. At the same time:
-
-- a durable TrueForge session is created;
-- the runbook turn begins;
-- `#oncall-demo` receives **ONCALL is investigating**;
-- the browser enters the live incident session.
-
-### 3. Four investigators work concurrently
-
-The incident route is not a chat transcript. It is an event-derived command board with four independent worker streams:
-
-| Specialist | Owns | Required evidence |
-|---|---|---|
-| `log-analyzer` | Error logs | first failure, grouped signature, verbatim samples |
-| `metrics-analyzer` | Service telemetry | baseline, first anomaly, peak p50/p95/p99/error rate |
-| `deploy-investigator` | Release history | suspect deploy, SHA, timestamp, author, changed files |
-| `code-blame` | Source attribution | independent deploy selection, exact file and line range, symptom fit |
-
-Each worker receives an isolated context and returns a strict JSON contract. The primary agent cannot declare a root cause until all four reports are complete and the correlation gates pass.
-
-### 4. The operator remains in control
-
-ONCALL renders the correlated remediation choices. The same checkpoint is posted to Slack. A response from either surface resumes the same TrueForge session.
-
-Selection is not approval. Before any write, TrueForge pauses again and shows:
-
-- the exact operation;
-- why it is requested;
-- the target repository and branch;
-- the expected side effect;
-- **Allow** and **Deny**.
-
-The first recorded decision wins. Reconnects never repeat a completed mutation.
-
-### 5. Daytona performs the approved recovery
-
-The rollback is one approval-gated MCP operation backed by a real Daytona sandbox:
-
-```text
-allocate → clone → reproduce → prepare deterministic revert
-         → run tests → verify healthy post-state
-         → push → verify remote SHA → stop sandbox
-```
-
-Mutation credentials are unavailable during preparation. They are injected only for the approved push phase. The durable coordinator checkpoints the expected revert SHA before mutation and reconciles remote state after restart.
-
-### 6. Recovery is proved, not narrated
-
-ONCALL accepts rollback success only when the structured response proves every invariant:
-
-- the approved incident, deploy, repository, and branch match;
-- the pre-state reproduces the degraded request profile;
-- tests pass;
-- post-state has zero request errors and healthy p99;
-- revert SHA equals remote SHA;
-- sandbox is stopped;
-- the durable audit records the executed operation.
-
-The final scene separates two outcomes:
-
-1. **Production recovered** — the tested rollback is live on `main`.
-2. **Permanent guard under review** — a separate tested fix remains an open PR, not silently deployed.
+**[Open the full video demo →](https://drive.google.com/file/d/1eHff5y28m-QIh7RG_nC9mRs4U8eneXUS/view?usp=sharing)**
 
 ## TrueForge depth
 
@@ -240,33 +171,6 @@ scripts/                       bootstrap, SDK session driver, verification utili
 tests/                         unit, integration, transport, durability, and UI contracts
 evidence/                      machine-readable live execution proofs
 ```
-
-## Run the demo
-
-Prerequisites:
-
-- TrueForge on `127.0.0.1:8790`;
-- checkout incident MCP on `127.0.0.1:8941`;
-- operator on `127.0.0.1:4334`;
-- credentials loaded from the local `.env`.
-
-Start on the production monitor:
-
-```text
-http://127.0.0.1:4334/
-```
-
-Then fire the incident:
-
-```bash
-./demo/trigger-alert.sh INC-4821
-```
-
-Keep three panes visible during the recording:
-
-1. production monitor / ONCALL command;
-2. Slack `#oncall-demo`;
-3. terminal for the single ignition command.
 
 ## Why this matters
 
