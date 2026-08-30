@@ -30,11 +30,16 @@ type TriggerOptions = {
   incidentId: string;
 };
 
-export async function triggerAlert({
+type StartedAlert = {
+  sessionId: string;
+  turn: Promise<unknown>;
+};
+
+export async function startAlert({
   baseUrl,
   agentName,
   incidentId,
-}: TriggerOptions): Promise<string> {
+}: TriggerOptions): Promise<StartedAlert> {
   const message = buildAlertMessage(incidentId);
   const client = new TrueForge({
     baseUrl,
@@ -42,22 +47,28 @@ export async function triggerAlert({
     stream: { reconnectionEnabled: true, maxReconnectionAttempts: 10 },
   });
   const session = await client.sessions.create({ agent: { name: agentName } });
-  try {
-    await client.sessions.createTurn(session.data.id, {
+  const turn = client.sessions
+    .createTurn(session.data.id, {
       input: [{ type: 'user.message', content: message }],
       previousTurnId: 'auto',
+    })
+    .catch(async turnError => {
+      try {
+        await client.sessions.delete(session.data.id);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [turnError, cleanupError],
+          `Failed to start incident ${incidentId} and remove empty session ${session.data.id}`,
+          { cause: cleanupError },
+        );
+      }
+      throw turnError;
     });
-  } catch (turnError) {
-    try {
-      await client.sessions.delete(session.data.id);
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [turnError, cleanupError],
-        `Failed to start incident ${incidentId} and remove empty session ${session.data.id}`,
-        { cause: cleanupError },
-      );
-    }
-    throw turnError;
-  }
-  return session.data.id;
+  return { sessionId: session.data.id, turn };
+}
+
+export async function triggerAlert(options: TriggerOptions): Promise<string> {
+  const { sessionId, turn } = await startAlert(options);
+  await turn;
+  return sessionId;
 }

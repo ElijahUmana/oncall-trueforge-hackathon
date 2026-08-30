@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   getErrorMessage,
   TrueForgeUI,
@@ -6,18 +6,35 @@ import {
   type SlotOverrides,
   type ThemeConfig,
 } from '@truefoundry/trueforge-ui';
-import { DEFAULT_AGENT_NAME, DEFAULT_INCIDENT_ID, triggerAlert } from './alert';
+import { DEFAULT_AGENT_NAME, DEFAULT_INCIDENT_ID, startAlert } from './alert';
+import { createOncallServer } from './oncall-server';
+import { ProductionMonitor } from './production-monitor';
+import { IncidentCommandCenter } from './incident-command-center';
+import { incidentTelemetry, useIncidentTelemetry } from './telemetry-store';
+import { TelemetryReplayBridge } from './telemetry-replay';
 import {
+  OperatorAgentSteps,
   OperatorApprovalBar,
+  OperatorAskUser,
+  OperatorAssistantMessage,
+  OperatorComposer,
+  OperatorEmptySessions,
   OperatorErrorBanner,
+  OperatorLoading,
   OperatorOpenUiBlock,
+  OperatorReconnect,
   OperatorSandboxCard,
   OperatorSubAgentCard,
+  OperatorThreadList,
   OperatorToolCallCard,
   OperatorWelcome,
 } from './operator-slots';
 
 const agentName = import.meta.env.VITE_ONCALL_AGENT_NAME ?? DEFAULT_AGENT_NAME;
+const agentId = import.meta.env.VITE_ONCALL_AGENT_ID;
+if (!agentId) {
+  throw new Error('VITE_ONCALL_AGENT_ID is required for saved incident history');
+}
 const incidentId =
   import.meta.env.VITE_ONCALL_INCIDENT_ID ?? DEFAULT_INCIDENT_ID;
 const baseUrl =
@@ -25,25 +42,30 @@ const baseUrl =
 
 const overrides: SlotOverrides = {
   WelcomeScreen: OperatorWelcome,
+  AssistantMessageBubble: OperatorAssistantMessage,
+  ComposerShell: OperatorComposer,
+  ThreadListShell: OperatorThreadList,
+  AgentStepsCard: OperatorAgentSteps,
   SubAgentCard: OperatorSubAgentCard,
   ToolApprovalBar: OperatorApprovalBar,
+  AskUserPrompt: OperatorAskUser,
   ToolCallCard: OperatorToolCallCard,
   SandboxToolCallCard: OperatorSandboxCard,
   OpenUiFenceBlock: OperatorOpenUiBlock,
   MessageErrorBanner: OperatorErrorBanner,
+  MessageListSkeleton: OperatorLoading,
+  ResumeUnavailable: OperatorReconnect,
+  ThreadListEmptyState: OperatorEmptySessions,
 };
 
-const server = {
-  type: 'trueforge' as const,
-  baseUrl,
-};
+const server = createOncallServer({ baseUrl, agentId });
 
 const agentConfig = { mode: 'SingleAgent' as const, name: agentName };
 
 const routes: RoutesConfig = {
   paths: {
-    root: '/',
-    session: '/sessions/:sessionId',
+    root: '/workbench',
+    session: '/workbench/:sessionId',
     agent: false,
     settings: false,
   },
@@ -89,8 +111,15 @@ export default function App() {
   const [triggerState, setTriggerState] = useState<TriggerState>({
     status: 'idle',
   });
+  const telemetry = useIncidentTelemetry();
+  const workbenchMatch = /^\/workbench(?:\/([^/]+))?$/.exec(
+    window.location.pathname,
+  );
+  const isWorkbenchRoute = workbenchMatch !== null;
+  const isSessionRoute = /^\/sessions\/[^/]+$/.test(window.location.pathname);
 
   const onError = useCallback((error: unknown) => {
+    incidentTelemetry.dispatch({ type: 'connection', status: 'interrupted' });
     setTriggerState({
       status: 'error',
       message: getErrorMessage(error, errorFallback),
@@ -98,12 +127,28 @@ export default function App() {
   }, []);
 
   const onTrigger = useCallback(async () => {
+    incidentTelemetry.dispatch({ type: 'reset' });
+    incidentTelemetry.dispatch({ type: 'connection', status: 'live' });
+    incidentTelemetry.dispatch({ type: 'sdk-trigger', status: 'running' });
     setTriggerState({ status: 'submitting' });
     try {
-      const sessionId = await triggerAlert({
+      const { sessionId, turn } = await startAlert({
         baseUrl,
         agentName,
         incidentId,
+      });
+      void turn.catch(error => {
+        console.error('TrueForge turn stream ended; session replay will continue.', error);
+      });
+      incidentTelemetry.dispatch({
+        type: 'session',
+        sessionId,
+        replay: false,
+      });
+      incidentTelemetry.dispatch({
+        type: 'sdk-trigger',
+        status: 'success',
+        sessionId,
       });
       window.location.assign(`/sessions/${encodeURIComponent(sessionId)}`);
     } catch (error) {
@@ -111,35 +156,82 @@ export default function App() {
     }
   }, [onError]);
 
+  if (isWorkbenchRoute) {
+    return (
+      <main className="workbench-page">
+        <header className="workbench-page-header">
+          <a
+            href={
+              workbenchMatch?.[1]
+                ? `/sessions/${encodeURIComponent(workbenchMatch[1])}`
+                : '/'
+            }
+          >
+            ← Return to incident command
+          </a>
+          <div>
+            <p className="operator-eyebrow">Native TrueForge control</p>
+            <h1>Operator workbench</h1>
+          </div>
+        </header>
+        <section className="workbench-page-stage" aria-label="TrueForge workbench">
+          <TrueForgeUI
+            server={server}
+            layout="sidebar"
+            agentConfig={agentConfig}
+            withRouter
+            routes={routes}
+            overrides={overrides}
+            theme={theme}
+            onError={onError}
+            className="trueforge-console"
+          />
+        </section>
+      </main>
+    );
+  }
+
+  if (!isSessionRoute) {
+    return <ProductionMonitor />;
+  }
+
   return (
     <main className="operator-shell">
+      <TelemetryReplayBridge baseUrl={baseUrl} />
       <header className="incident-command-bar">
         <div className="incident-command-copy">
           <span className="oncall-mark" aria-hidden="true">
+            <i />
             O
           </span>
           <div>
-            <p className="operator-eyebrow">ONCALL / TrueForge</p>
-            <h1>Incident response console</h1>
+            <p className="operator-eyebrow">TrueForge / Autonomous response</p>
+            <h1>ONCALL Command</h1>
           </div>
         </div>
-        <div className="incident-trigger-group">
-          <div className="incident-target">
-            <span>Alert source</span>
-            <strong>{incidentId}</strong>
+
+        <div className="command-telemetry" aria-label="Runbook safeguards">
+          <div>
+            <span className="telemetry-dot" aria-hidden="true" />
+            <small>Runtime</small>
+            <strong>TrueForge</strong>
           </div>
-          <button
-            type="button"
-            className="trigger-alert-button"
-            onClick={() => void onTrigger()}
-            disabled={triggerState.status === 'submitting'}
-            aria-describedby="trigger-status"
-          >
-            <span className="trigger-pulse" aria-hidden="true" />
-            {triggerState.status === 'submitting'
-              ? 'Opening incident…'
-              : 'Trigger alert'}
-          </button>
+          <div>
+            <small>Response fabric</small>
+            <strong>4 specialists</strong>
+          </div>
+          <div>
+            <small>Control</small>
+            <strong>Approval-gated</strong>
+          </div>
+        </div>
+
+        <div className="incident-header-status">
+          <span className="telemetry-dot" aria-hidden="true" />
+          <div>
+            <small>Local harness</small>
+            <strong>Connected</strong>
+          </div>
         </div>
       </header>
 
@@ -155,22 +247,12 @@ export default function App() {
         {triggerState.status === 'error' ? triggerState.message : null}
       </div>
 
-      <section
-        className="harness-stage"
-        aria-label="TrueForge incident session"
-      >
-        <TrueForgeUI
-          server={server}
-          layout="sidebar"
-          agentConfig={agentConfig}
-          withRouter
-          routes={routes}
-          overrides={overrides}
-          theme={theme}
-          onError={onError}
-          className="trueforge-console"
-        />
-      </section>
+      <IncidentCommandCenter
+        incidentId={incidentId}
+        isSubmitting={triggerState.status === 'submitting'}
+        isSessionRoute={isSessionRoute}
+        onEngage={() => void onTrigger()}
+      />
     </main>
   );
 }

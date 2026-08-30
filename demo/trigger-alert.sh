@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-trueforge_base_url="${TRUEFORGE_BASE_URL:-http://127.0.0.1:8790}"
-agent_name="${ONCALL_AGENT_NAME:-oncall-incident-responder}"
+operator_url="${ONCALL_OPERATOR_URL:-http://127.0.0.1:4334}"
 incident_id="${1:-INC-4821}"
 
 if [[ ! "$incident_id" =~ ^INC-[0-9]+$ ]]; then
@@ -10,54 +9,24 @@ if [[ ! "$incident_id" =~ ^INC-[0-9]+$ ]]; then
   exit 2
 fi
 
-headers=(-H 'Accept: application/json' -H 'Content-Type: application/json')
-if [[ -n "${TRUEFORGE_TOKEN:-}" ]]; then
-  headers+=(-H "Authorization: Bearer ${TRUEFORGE_TOKEN}")
-fi
+payload=$(node -e '
+process.stdout.write(JSON.stringify({ incident_id: process.argv[1] }));
+' "$incident_id")
 
-session_payload=$(node -e '
-process.stdout.write(JSON.stringify({ agent: { name: process.argv[1] } }));
-' "$agent_name")
-session_response=$(curl --fail-with-body --silent --show-error \
-  --connect-timeout 5 --max-time 30 \
-  "${headers[@]}" \
-  -X POST "${trueforge_base_url}/api/v1/sessions" \
-  --data "$session_payload")
+response=$(curl --fail-with-body --silent --show-error \
+  --connect-timeout 5 --max-time 45 \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -X POST "${operator_url}/demo/trigger" \
+  --data "$payload")
 
-session_id=$(node -e '
-const chunks = [];
-process.stdin.on("data", chunk => chunks.push(chunk));
-process.stdin.on("end", () => {
-  const payload = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  if (typeof payload?.data?.id !== "string") throw new Error("Session response is missing data.id");
-  process.stdout.write(payload.data.id);
-});
-' <<<"$session_response")
-
-cleanup_session() {
-  curl --silent --show-error \
-    --connect-timeout 5 --max-time 30 \
-    "${headers[@]}" \
-    -X DELETE "${trueforge_base_url}/api/v1/sessions/${session_id}" >/dev/null
+node -e '
+const payload = JSON.parse(process.argv[1]);
+if (typeof payload.sessionId !== "string") {
+  throw new Error(`Trigger response is missing sessionId: ${process.argv[1]}`);
 }
-trap cleanup_session ERR
-
-message=$(printf '%s' "A production alert fired for incident ${incident_id}. Start the on-call incident response workflow now. Retrieve current incident data from the connected incident tools before making any claim. Acknowledge the incident, investigate with the four runbook workers in parallel, and present evidence-linked remediation choices. Do not execute a write or destructive action without the required human approval.")
-turn_payload=$(node -e '
-const message = process.argv[1];
-process.stdout.write(JSON.stringify({
-  input: [{ type: "user.message", content: message }],
-  previous_turn_id: "auto",
-  stream: false,
-}));
-' "$message")
-
-curl --fail-with-body --silent --show-error \
-  --connect-timeout 5 --max-time 30 \
-  "${headers[@]}" \
-  -X POST "${trueforge_base_url}/api/v1/sessions/${session_id}/turns" \
-  --data "$turn_payload" >/dev/null
-trap - ERR
-
-printf '%s\n' "${session_id}"
-printf '%s\n' "Operator URL: ${ONCALL_OPERATOR_URL:-http://127.0.0.1:4173}/sessions/${session_id}"
+console.log(`Incident detected: ${payload.incidentId}`);
+console.log(`Slack investigation notification: ${payload.slackStatus}`);
+console.log(`ONCALL: ${process.argv[2]}/sessions/${payload.sessionId}`);
+if (payload.slackPermalink) console.log(`Slack: ${payload.slackPermalink}`);
+' "$response" "$operator_url"
