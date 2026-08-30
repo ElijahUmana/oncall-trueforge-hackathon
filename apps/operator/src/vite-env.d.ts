@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_TRUEFORGE_BASE_URL?: string;
   readonly VITE_ONCALL_AGENT_NAME?: string;
+  readonly VITE_ONCALL_AGENT_ID?: string;
   readonly VITE_ONCALL_INCIDENT_ID?: string;
 }
 
