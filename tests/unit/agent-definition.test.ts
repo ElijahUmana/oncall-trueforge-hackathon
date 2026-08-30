@@ -7,11 +7,7 @@ import {
   buildCreateAgentRequest,
 } from '../../agent/definition.mjs';
 
-const gatedTools = [
-  'pagerduty_resolve',
-  'rollback_execute',
-  'slack_post_message',
-];
+const gatedTools = ['rollback_execute'];
 
 describe('ONCALL TrueForge manifest', () => {
   it.each(['stable', 'modern'] as const)(
@@ -51,7 +47,7 @@ describe('ONCALL TrueForge manifest', () => {
     });
   });
 
-  it('gates destructive intent and every closeout write while allowing prompt acknowledgment', () => {
+  it('gates only rollback execution while allowing acknowledgment and closeout', () => {
     const manifest = buildCreateAgentRequest({
       modelName: 'custom/oncall-model',
     }).manifest;
@@ -59,14 +55,16 @@ describe('ONCALL TrueForge manifest', () => {
     expect(server).toBeDefined();
     const policy = server?.require_approval_for_tools ?? [];
     expect(server?.disable_tools).toContain('jira_create_issue');
-    expect(policy).toContain('@destructive');
+    expect(policy).not.toContain('@destructive');
     expect(policy).not.toContain('@write');
     expect(policy).not.toContain('pagerduty_acknowledge');
+    expect(policy).not.toContain('pagerduty_resolve');
+    expect(policy).not.toContain('slack_post_message');
     expect(policy).not.toContain('jira_create_issue');
     expect(linearServer).toMatchObject({
       name: 'linear',
       enable_tools: ['get_workspace', 'list_teams', 'save_issue', 'get_issue'],
-      require_approval_for_tools: ['@destructive', 'save_issue'],
+      require_approval_for_tools: [],
     });
     expect(policy).toEqual(expect.arrayContaining(gatedTools));
   });
@@ -121,16 +119,16 @@ describe('ONCALL TrueForge manifest', () => {
 
   it('requires verified Linear without retaining Jira in the final path', () => {
     expect(AGENT_INSTRUCTIONS).toContain(
-      'A Linear follow-up is required through the official TrueForge Linear connector',
+      'Create the required Linear follow-up through the official TrueForge Linear connector',
     );
     expect(AGENT_INSTRUCTIONS).toContain(
-      'Create the follow-up by calling save_issue exactly once',
+      'Create the required Linear follow-up through the official TrueForge Linear connector by calling save_issue exactly once',
     );
     expect(AGENT_INSTRUCTIONS).toContain(
-      'call get_issue exactly once with the returned issue ID or identifier',
+      'Then call get_issue exactly once with the returned issue ID or identifier',
     );
     expect(AGENT_INSTRUCTIONS).toContain(
-      'Trust only the save_issue and get_issue tool responses',
+      'After verified rollback, complete closeout automatically without additional human approval',
     );
     expect(AGENT_INSTRUCTIONS).not.toContain('jira_create_issue');
   });

@@ -27,14 +27,7 @@ describe('ONCALL agent manifest', () => {
     expect(mcpServer).toBeDefined();
     expect(mcpServer?.name).toBe(MCP_SERVER_NAME);
     expect(mcpServer?.disable_tools).toContain('jira_create_issue');
-    expect(mcpServer?.require_approval_for_tools).toEqual(
-      expect.arrayContaining([
-        '@destructive',
-        'pagerduty_resolve',
-        'rollback_execute',
-        'slack_post_message',
-      ]),
-    );
+    expect(mcpServer?.require_approval_for_tools).toEqual(['rollback_execute']);
     expect(mcpServer?.require_approval_for_tools).not.toContain(
       'pagerduty_acknowledge',
     );
@@ -44,7 +37,7 @@ describe('ONCALL agent manifest', () => {
     expect(linearServer).toMatchObject({
       name: 'linear',
       enable_tools: ['get_workspace', 'list_teams', 'save_issue', 'get_issue'],
-      require_approval_for_tools: ['@destructive', 'save_issue'],
+      require_approval_for_tools: [],
     });
     expect(manifest.config).toEqual(
       expect.objectContaining({
@@ -98,7 +91,7 @@ describe('ONCALL agent manifest', () => {
       'Do not run a second git revert with the native sandbox tool',
     );
     expect(AGENT_INSTRUCTIONS).toContain(
-      'A Linear follow-up is required through the official TrueForge Linear connector',
+      'Create the required Linear follow-up through the official TrueForge Linear connector',
     );
     expect(AGENT_INSTRUCTIONS).not.toContain('jira_create_issue');
     expect(AGENT_INSTRUCTIONS).toContain('If denied, stop remediation.');
