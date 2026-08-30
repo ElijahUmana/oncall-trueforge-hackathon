@@ -2,7 +2,6 @@ import type { CSSProperties } from 'react';
 import { useEffect, useState } from 'react';
 import {
   SPECIALIST_NAMES,
-  type IncidentPhase,
   type IncidentTelemetry,
   type SpecialistName,
   type TelemetryStatus,
@@ -35,18 +34,6 @@ const workerCopy: Record<
   },
 };
 
-const progress: Array<{
-  phases: IncidentPhase[];
-  label: string;
-}> = [
-  { phases: ['standby'], label: 'Page' },
-  { phases: ['investigating'], label: 'Investigate' },
-  { phases: ['correlating'], label: 'Correlate' },
-  { phases: ['deciding', 'awaiting-approval'], label: 'Authorize' },
-  { phases: ['executing', 'verifying'], label: 'Execute' },
-  { phases: ['recovered', 'closing', 'resolved'], label: 'Recover' },
-];
-
 function readable(value: string): string {
   return value.replaceAll('_', ' ');
 }
@@ -57,24 +44,6 @@ function workerState(status: TelemetryStatus): string {
   if (status === 'error') return 'Blocked';
   if (status === 'unavailable') return 'Evidence unavailable';
   return 'Waiting for dispatch';
-}
-
-function StoryProgress({ phase }: { phase: IncidentPhase }) {
-  const activeIndex = progress.findIndex(item => item.phases.includes(phase));
-  return (
-    <ol className="story-progress" aria-label="Incident response progress">
-      {progress.map((item, index) => (
-        <li
-          key={item.label}
-          data-active={index === activeIndex || undefined}
-          data-complete={index < activeIndex || undefined}
-        >
-          <span>{index < activeIndex ? '✓' : String(index + 1).padStart(2, '0')}</span>
-          <strong>{item.label}</strong>
-        </li>
-      ))}
-    </ol>
-  );
 }
 
 function RuntimeProof({ children }: { children: string }) {
@@ -416,7 +385,11 @@ function DecisionScene({
             ? readable(approval.toolName)
             : 'Rollback deploy 9921'}
         </strong>
-        {approval?.target ? <span>{approval.target}</span> : null}
+        {awaitingApproval && checkpointDetail ? (
+          <span>{checkpointDetail}</span>
+        ) : approval?.target ? (
+          <span>{approval.target}</span>
+        ) : null}
       </div>
       <div className="decision-options" aria-label="ONCALL decision controls">
         {options.map(option => (

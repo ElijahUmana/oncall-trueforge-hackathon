@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   getErrorMessage,
   TrueForgeUI,
@@ -111,7 +111,7 @@ export default function App() {
   const [triggerState, setTriggerState] = useState<TriggerState>({
     status: 'idle',
   });
-  const telemetry = useIncidentTelemetry();
+  useIncidentTelemetry();
   const workbenchMatch = /^\/workbench(?:\/([^/]+))?$/.exec(
     window.location.pathname,
   );
