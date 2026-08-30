@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "session_id": "01m17ph65m4m45f4d19j0m4nc8",
+  "persisted_events": 100,
+  "persisted_turns": 9,
+  "persisted_event_types": [
+    "mcp.initialize",
+    "model.message",
+    "thread.done",
+    "tool.approval_required",
+    "tool.response",
+    "tool.response_required",
+    "turn.created",
+    "turn.done"
+  ],
+  "approvals": {
+    "required_events": 4,
+    "allowed_turns": 4,
+    "rollback": true,
+    "slack": true,
+    "linear_save": true,
+    "pagerduty_resolve": true,
+    "linear_read_is_read_only": true
+  },
+  "rollback": {
+    "repository_url": "https://github.com/ElijahUmana/oncall-demo-svc.git",
+    "branch": "main",
+    "approved_repository_url": "https://github.com/ElijahUmana/oncall-demo-svc.git",
+    "approved_branch": "main",
+    "sandbox_id": "27b7948e-b2d1-4d25-b686-adce6a2ee76d",
+    "pre_evidence": {
+      "requests": 25,
+      "errors": 3,
+      "error_rate": 0.12,
+      "p99_ms": 6946.5,
+      "health": "degraded"
+    },
+    "revert_sha": "0681dd9e6a6b28cc107cba56887b4ecf77e361b5",
+    "post_evidence": {
+      "requests": 25,
+      "errors": 0,
+      "error_rate": 0,
+      "p99_ms": 122.4,
+      "health": "healthy"
+    },
+    "remote_sha": "0681dd9e6a6b28cc107cba56887b4ecf77e361b5",
+    "github_main_sha": "0681dd9e6a6b28cc107cba56887b4ecf77e361b5",
+    "tests_passed": true,
+    "sandbox_stopped": true,
+    "cleanup_error_present": false,
+    "audit_action": "remediation.rollback_executed"
+  },
+  "slack": {
+    "requested_channel": "#oncall-demo",
+    "delivered": true,
+    "mode": "bot",
+    "channel_id_present": true,
+    "message_ts_present": true,
+    "permalink_present": true,
+    "http_status": 200,
+    "audit_action": "slack.message_posted"
+  },
+  "linear": {
+    "save_approved": true,
+    "read_back_performed": true,
+    "requested_team": "Elijah",
+    "requested_priority": 2,
+    "requested_title": "INC-4821 permanent bulk-write performance guard",
+    "read_id": "ELI-6",
+    "id": "ELI-6",
+    "identifier_matches": true,
+    "title_matches": true,
+    "team_matches": true,
+    "priority_matches": true,
+    "assignee_matches": true,
+    "url_matches": true,
+    "description_matches": true
+  },
+  "resolution": {
+    "approval_present": true,
+    "requested_incident": "INC-4821",
+    "status": "resolved",
+    "audit_action": "pagerduty.resolved",
+    "current_incident_status": "resolved"
+  },
+  "audit_actions": [
+    "pagerduty.acknowledged",
+    "remediation.rollback_executed",
+    "slack.message_posted",
+    "pagerduty.resolved"
+  ]
+}

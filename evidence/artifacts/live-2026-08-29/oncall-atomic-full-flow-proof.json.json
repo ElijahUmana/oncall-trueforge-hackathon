@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-29T21:43:06.100Z",
+  "surface": "approval-gates",
+  "check": "atomic-full-incident-flow",
+  "source": "../../../../../tmp/oncall-atomic-full-flow-proof.json",
+  "artifact": "evidence/artifacts/live-2026-08-29/oncall-atomic-full-flow-proof.json",
+  "sha256": "23b62aedd91d2347b1770c5212d816d69594e73d92e41bf3ce246d3ae767a66f",
+  "bytes": 2527
+}
